@@ -21,6 +21,12 @@ export const DEFAULT_GDD_SECTIONS: Section[] = [
     suggestions: ['Система крафта', 'Древо навыков', 'Перманентная смерть', 'Пошаговый бой', 'Стелс механики', 'Паркур', 'Разрушаемость']
   },
   {
+    id: 'in_game',
+    title: 'In-Game',
+    content: 'Describe the core gameplay loop, player progression, and challenges.',
+    suggestions: ['Daily Quests', 'Dungeon Raids', 'Seasonal Events', 'Leaderboards', 'Competitive Play', 'Co-op Challenges', 'Live Service Events']
+  },
+  {
     id: 'characters',
     title: 'Персонажи',
     content: 'Протагонисты, антагонисты и ключевые NPC. Каковы их мотивы?',

@@ -4,11 +4,19 @@ import { GameProject, ViewState, StoryFlowData } from './types';
 import { DEFAULT_GDD_SECTIONS } from './constants';
 import Dashboard from './components/Dashboard';
 import Editor from './components/Editor';
+import Login from './components/Login';
 
-const STORAGE_KEY = 'forge_projects_v6_final';
-const LAST_PROJECT_KEY = 'forge_last_project_id';
+const STORAGE_KEY = 'arcane_projects_v7';
+const LAST_PROJECT_KEY = 'arcane_last_project_id';
+const AUTH_KEY = 'arcane_auth_credentials';
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [credentials, setCredentials] = useState(() => {
+    const saved = localStorage.getItem(AUTH_KEY);
+    return saved ? JSON.parse(saved) : { login: 'nez', pass: 'nez123' };
+  });
+
   const [projects, setProjects] = useState<GameProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     try {
@@ -61,10 +69,13 @@ const App: React.FC = () => {
     return localStorage.getItem(LAST_PROJECT_KEY);
   });
 
-  // Глобальное сохранение при изменении списка проектов
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
+
+  useEffect(() => {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(credentials));
+  }, [credentials]);
 
   useEffect(() => {
     if (currentProjectId) {
@@ -73,6 +84,18 @@ const App: React.FC = () => {
       localStorage.removeItem(LAST_PROJECT_KEY);
     }
   }, [currentProjectId]);
+
+  const handleLogin = (user: string, pass: string) => {
+    if (user === credentials.login && pass === credentials.pass) {
+      setIsAuthenticated(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleUpdateCredentials = (newLogin: string, newPass: string) => {
+    setCredentials({ login: newLogin, pass: newPass });
+  };
 
   const handleCreateProject = (title: string, genre: string) => {
     const newProject: GameProject = {
@@ -94,7 +117,6 @@ const App: React.FC = () => {
     setCurrentProjectId(newProject.id);
   };
 
-  // Оптимизированный обработчик обновления проекта
   const handleUpdateProject = useCallback((updated: GameProject) => {
     setProjects(prev => prev.map(p => 
       p.id === updated.id ? { ...updated, lastModified: Date.now() } : p
@@ -107,6 +129,10 @@ const App: React.FC = () => {
       if (currentProjectId === id) setCurrentProjectId(null);
     }
   };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   const currentProject = projects.find(p => p.id === currentProjectId);
 
@@ -136,16 +162,27 @@ const App: React.FC = () => {
           <h1 className="text-xl font-black tracking-tighter text-white">{currentProject.title}</h1>
         </div>
         <div className="flex items-center gap-6">
+           <button 
+             onClick={() => setIsAuthenticated(false)}
+             className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-400 transition-colors"
+           >
+             Выйти
+           </button>
            <div className="flex flex-col items-end">
               <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest leading-none">Status</span>
-              <span className="text-[10px] text-slate-500 font-bold">Forge Synced</span>
+              <span className="text-[10px] text-slate-500 font-bold">Arcane Synced</span>
            </div>
            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-primary-500 shadow-lg shadow-primary-500/10">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
            </div>
         </div>
       </header>
-      <Editor project={currentProject} onUpdate={handleUpdateProject} />
+      <Editor 
+        project={currentProject} 
+        onUpdate={handleUpdateProject} 
+        onUpdateAuth={handleUpdateCredentials}
+        authData={credentials}
+      />
     </div>
   );
 };
