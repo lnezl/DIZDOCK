@@ -87,7 +87,7 @@ const ArchitectureOverview: React.FC<ArchitectureOverviewProps> = ({
             </div>
             <h3 className="text-xl font-black text-white mb-2">Управление Данными</h3>
             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest leading-relaxed">
-              Так как GitHub Pages статичен, сохраняйте бэкапы в JSON. Это единственный способ перенести данные или обезопасить их от очистки кэша.
+              Экспортируйте данные в JSON для резервного копирования или переноса проекта между устройствами.
             </p>
           </div>
           <div className="flex gap-2 relative z-10">
@@ -120,11 +120,8 @@ const ArchitectureOverview: React.FC<ArchitectureOverviewProps> = ({
             <h3 className="text-xl font-black text-white mb-2 group-hover:text-primary-400 transition-colors">{section.title}</h3>
             <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest flex items-center gap-2">
               <span className={`w-1.5 h-1.5 rounded-full ${(section.subSections || []).length > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-              {(section.subSections || []).length} записей в архиве
+              {(section.subSections || []).length} объектов
             </p>
-            <div className="absolute bottom-10 right-10 opacity-0 group-hover:opacity-100 transition-opacity">
-               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-primary-500"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
           </button>
         ))}
       </div>

@@ -1,18 +1,18 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GameProject, ViewState, StoryFlowData, BoardColumn } from './types.ts';
+import { GameProject, BoardColumn } from './types.ts';
 import { DEFAULT_GDD_SECTIONS } from './constants.ts';
 import Dashboard from './components/Dashboard.tsx';
 import Editor from './components/Editor.tsx';
 import Login from './components/Login.tsx';
 
-const STORAGE_KEY = 'arcane_projects_v7';
+const STORAGE_KEY = 'arcane_unity_v1';
 const LAST_PROJECT_KEY = 'arcane_last_project_id';
 const AUTH_KEY = 'arcane_auth_credentials';
 
 const DEFAULT_COLUMNS: BoardColumn[] = [
   { id: 'backlog', title: 'Бэклог', color: 'bg-slate-700' },
-  { id: 'todo', title: 'В плане', color: 'bg-sky-500' },
+  { id: 'todo', title: 'План', color: 'bg-sky-500' },
   { id: 'doing', title: 'В работе', color: 'bg-primary-500' },
   { id: 'done', title: 'Готово', color: 'bg-emerald-500' }
 ];
@@ -24,9 +24,6 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { login: 'nez', pass: 'nez123' };
   });
 
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('saved');
-  const [lastSaveTime, setLastSaveTime] = useState<string>(new Date().toLocaleTimeString());
-
   const [projects, setProjects] = useState<GameProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     try {
@@ -34,7 +31,7 @@ const App: React.FC = () => {
       return parsed.map((p: any) => ({
         ...p,
         columns: p.columns || DEFAULT_COLUMNS,
-        storyFlows: p.storyFlows || [{ id: crypto.randomUUID(), name: 'Основная схема', plotNodes: [] }],
+        storyFlows: p.storyFlows || [{ id: crypto.randomUUID(), name: 'Основной сюжет', plotNodes: [] }],
         tasks: p.tasks || [],
         sections: (p.sections || [...DEFAULT_GDD_SECTIONS])
       }));
@@ -69,11 +66,11 @@ const App: React.FC = () => {
       title, genre,
       lastModified: Date.now(),
       timeSpent: 0,
-      hourlyRate: 15,
+      hourlyRate: 20,
       sections: [...DEFAULT_GDD_SECTIONS],
       tasks: [],
       columns: [...DEFAULT_COLUMNS],
-      storyFlows: [{ id: crypto.randomUUID(), name: 'Основная схема', plotNodes: [] }]
+      storyFlows: [{ id: crypto.randomUUID(), name: 'Основной сюжет', plotNodes: [] }]
     };
     setProjects(prev => [newProject, ...prev]);
     setCurrentProjectId(newProject.id);
@@ -95,15 +92,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen flex flex-col bg-unity-dark">
+      <header className="h-10 bg-unity-header border-b border-unity-dark flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-4">
-          <button onClick={() => setCurrentProjectId(null)} className="text-slate-400 hover:text-white transition-all flex items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest">Назад</span>
+          <button onClick={() => setCurrentProjectId(null)} className="text-[10px] font-bold text-slate-400 hover:text-white uppercase tracking-tighter transition-all flex items-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" strokeWidth="3"/></svg>
+            Хаб Архитектора Unity
           </button>
-          <h1 className="text-xl font-black tracking-tighter text-white">{currentProject.title}</h1>
+          <div className="h-4 w-[1px] bg-unity-border mx-2" />
+          <h1 className="text-[11px] font-bold text-slate-300">{currentProject.title} <span className="text-slate-500 font-normal">[{currentProject.genre}]</span></h1>
         </div>
-        <button onClick={() => setIsAuthenticated(false)} className="text-[9px] font-black text-rose-500 uppercase">Выйти</button>
+        <div className="flex items-center gap-3">
+          <span className="text-[9px] text-slate-500 font-mono">Сборка v2.5.0</span>
+          <button onClick={() => setIsAuthenticated(false)} className="text-[9px] font-bold text-rose-500 uppercase hover:text-rose-400">Выход</button>
+        </div>
       </header>
       <Editor 
         project={currentProject} 

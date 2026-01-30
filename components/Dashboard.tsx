@@ -10,9 +10,9 @@ interface DashboardProps {
 }
 
 const RECOMMENDED_GENRES = [
-  "RPG", "Action", "Adventure", "Strategy", "Simulation", 
-  "Puzzle", "Horror", "Roguelike", "Platformer", "MMO", 
-  "Sandbox", "Souls-like", "Cyberpunk", "Fantasy", "Survival"
+  "RPG", "Экшен", "Приключение", "Стратегия", "Симулятор", 
+  "Пазл", "Хоррор", "Рогалик", "Платформер", "ММО", 
+  "Песочница", "Souls-like", "Киберпанк", "Фэнтези", "Выживание"
 ];
 
 const Dashboard: React.FC<DashboardProps> = ({ projects, onCreate, onDelete, onSelect }) => {
@@ -32,142 +32,208 @@ const Dashboard: React.FC<DashboardProps> = ({ projects, onCreate, onDelete, onS
 
   const calculateProgress = (project: GameProject) => {
     if (!project.tasks || project.tasks.length === 0) return 0;
-    const completed = project.tasks.filter(t => t.status === 'done').length;
+    const completed = project.tasks.filter(t => t.status === 'done' || t.status === 'Готово').length;
     return Math.round((completed / project.tasks.length) * 100);
   };
 
   return (
-    <div className="p-8 lg:p-16 max-w-7xl mx-auto min-h-screen">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16 gap-8">
-        <div className="max-w-2xl">
-          <h2 className="text-6xl font-black mb-4 tracking-tighter text-white">Лаборатория</h2>
-          <p className="text-slate-400 font-medium text-xl leading-relaxed">Добро пожаловать в Forge. Место, где абстрактные идеи превращаются в детальные миры и механики.</p>
+    <div className="flex h-screen bg-unity-dark text-unity-text overflow-hidden">
+      {/* Sidebar - Unity Hub style */}
+      <aside className="w-64 bg-unity-panel border-r border-unity-border flex flex-col">
+        <div className="p-6 border-b border-unity-border">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-unity-accent rounded flex items-center justify-center text-white shadow-lg">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z"/></svg>
+            </div>
+            <span className="font-bold text-sm tracking-tight">Unity Architect</span>
+          </div>
         </div>
-        <button 
-          onClick={() => setShowCreate(true)}
-          className="bg-primary-600 hover:bg-primary-500 text-white px-10 py-5 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all shadow-2xl shadow-primary-600/20 hover:scale-105 active:scale-95 group flex items-center gap-3"
-        >
-          <span>Новый Проект</span>
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-      </div>
+        
+        <nav className="flex-1 p-2 space-y-1">
+          <button className="w-full text-left px-4 py-2 rounded bg-unity-accent/20 text-unity-accent text-xs font-bold border border-unity-accent/20">
+            Проекты
+          </button>
+          <button className="w-full text-left px-4 py-2 rounded text-unity-dim hover:bg-unity-hover text-xs font-medium transition-colors">
+            Обучение
+          </button>
+          <button className="w-full text-left px-4 py-2 rounded text-unity-dim hover:bg-unity-hover text-xs font-medium transition-colors">
+            Сообщество
+          </button>
+          <button className="w-full text-left px-4 py-2 rounded text-unity-dim hover:bg-unity-hover text-xs font-medium transition-colors">
+            Установки
+          </button>
+        </nav>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {projects.map((project) => (
-          <div 
-            key={project.id}
-            className="group bg-slate-900/40 border border-slate-800 rounded-[3rem] p-10 hover:border-primary-500/50 transition-all cursor-pointer relative overflow-hidden flex flex-col min-h-[340px] shadow-xl hover:shadow-primary-500/5 hover:-translate-y-2"
-            onClick={() => onSelect(project.id)}
-          >
-            <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-100 transition-opacity">
-               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(project.id);
-                }}
-                className="text-slate-600 hover:text-rose-500 p-2 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        <div className="p-4 border-t border-unity-border">
+          <div className="bg-unity-dark/50 p-3 rounded border border-unity-stroke">
+            <p className="text-[10px] text-unity-dim font-bold uppercase mb-1">Версия Hub</p>
+            <p className="text-[10px] font-mono">v3.8.0-production</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col">
+        <header className="h-16 bg-unity-header border-b border-unity-border flex items-center justify-between px-8">
+          <h2 className="text-xl font-bold tracking-tight">Проекты</h2>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <input 
+                type="text" 
+                placeholder="Поиск проектов..." 
+                className="unity-input w-64 bg-unity-dark border-unity-stroke"
+              />
+            </div>
+            <button 
+              onClick={() => setShowCreate(true)}
+              className="unity-button-primary px-4 py-1.5 text-xs uppercase font-bold tracking-wider"
+            >
+              Новый проект
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-8">
+          <div className="max-w-6xl mx-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-[10px] font-bold text-unity-dim uppercase tracking-widest border-b border-unity-border">
+                  <th className="pb-4 font-bold">Название проекта</th>
+                  <th className="pb-4 font-bold">Версия Unity</th>
+                  <th className="pb-4 font-bold">Платформа</th>
+                  <th className="pb-4 font-bold">Изменен</th>
+                  <th className="pb-4 font-bold">Прогресс</th>
+                  <th className="pb-4"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-unity-border/50">
+                {projects.map((project) => (
+                  <tr 
+                    key={project.id}
+                    onClick={() => onSelect(project.id)}
+                    className="group hover:bg-unity-hover/50 cursor-pointer transition-colors"
+                  >
+                    <td className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-unity-panel border border-unity-stroke rounded flex items-center justify-center text-unity-dim group-hover:text-unity-accent transition-colors">
+                          <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6z"/></svg>
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-unity-text">{project.title}</div>
+                          <div className="text-[10px] text-unity-dim">{project.genre}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 text-xs font-mono text-unity-dim">2023.2.14f1</td>
+                    <td className="py-4">
+                      <div className="flex gap-2">
+                        <span className="w-5 h-5 bg-unity-panel border border-unity-stroke rounded flex items-center justify-center text-[8px] font-bold">PC</span>
+                        <span className="w-5 h-5 bg-unity-panel border border-unity-stroke rounded flex items-center justify-center text-[8px] font-bold">WEB</span>
+                      </div>
+                    </td>
+                    <td className="py-4 text-xs text-unity-dim">
+                      {new Date(project.lastModified).toLocaleDateString('ru-RU')}
+                    </td>
+                    <td className="py-4">
+                      <div className="w-32">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[9px] font-bold">{calculateProgress(project)}%</span>
+                        </div>
+                        <div className="h-1 bg-unity-dark rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-unity-accent transition-all duration-500"
+                            style={{ width: `${calculateProgress(project)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 text-right">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if(confirm('Удалить проект?')) onDelete(project.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 p-2 text-unity-dim hover:text-rose-500 transition-all"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {projects.length === 0 && !showCreate && (
+              <div className="mt-20 text-center py-20 border-2 border-dashed border-unity-border rounded-lg bg-unity-panel/30">
+                <div className="w-16 h-16 bg-unity-dark border border-unity-stroke rounded-full flex items-center justify-center mx-auto mb-6 text-unity-dim">
+                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z"/></svg>
+                </div>
+                <h3 className="text-lg font-bold mb-2 tracking-tight">Проекты не найдены</h3>
+                <p className="text-unity-dim text-sm mb-6">Создайте свой первый дизайн-документ, чтобы начать разработку.</p>
+                <button 
+                  onClick={() => setShowCreate(true)}
+                  className="unity-button-primary px-6 py-2 text-xs font-bold uppercase tracking-widest"
+                >
+                  Создать новый проект
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* Modal - Hub Style */}
+      {showCreate && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+          <div className="bg-unity-panel border border-unity-stroke w-full max-w-lg rounded-sm shadow-2xl animate-in zoom-in duration-200">
+            <div className="bg-unity-header px-6 py-4 border-b border-unity-border flex justify-between items-center">
+              <h3 className="text-sm font-bold uppercase tracking-widest">Новый проект</h3>
+              <button onClick={() => setShowCreate(false)} className="text-unity-dim hover:text-white transition-colors">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="w-4 h-4"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
             
-            <div className="mb-8 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary-400 bg-primary-400/5 px-5 py-2 rounded-full border border-primary-500/20">
-                {project.genre}
-              </span>
-            </div>
-            
-            <h3 className="text-3xl font-black mb-auto group-hover:text-primary-300 transition-colors leading-tight tracking-tight">{project.title}</h3>
-            
-            <div className="mt-10 space-y-5">
-              <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-slate-500">
-                <span>Прогресс GDD</span>
-                <span className="text-primary-400 font-mono text-sm">{calculateProgress(project)}%</span>
-              </div>
-              <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden p-[2px]">
-                <div 
-                  className="h-full bg-primary-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(245,158,11,0.5)]"
-                  style={{ width: `${calculateProgress(project)}%` }}
-                />
-              </div>
-              <div className="flex items-center justify-between pt-4">
-                 <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-                  {new Date(project.lastModified).toLocaleDateString()}
-                </p>
-                <div className="flex -space-x-3">
-                   {[...Array(3)].map((_, i) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-4 border-slate-900 bg-slate-800 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 bg-primary-500/50 rounded-full" />
-                      </div>
-                   ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {projects.length === 0 && !showCreate && (
-          <div className="col-span-full py-40 text-center border-4 border-dashed border-slate-800 rounded-[4rem] flex flex-col items-center justify-center bg-slate-900/20 backdrop-blur-sm">
-            <div className="w-24 h-24 bg-primary-500/10 rounded-full flex items-center justify-center mb-10 text-primary-500 border border-primary-500/20 shadow-2xl shadow-primary-500/10">
-               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <p className="text-slate-400 text-2xl font-black mb-8 max-w-md leading-relaxed">Ни одного мира еще не создано. Станьте первым Архитектором.</p>
-            <button 
-              onClick={() => setShowCreate(true)}
-              className="text-primary-400 hover:text-white font-black uppercase tracking-[0.2em] text-sm flex items-center gap-4 bg-primary-500/10 px-8 py-4 rounded-[1.5rem] border border-primary-500/20 hover:bg-primary-600 transition-all active:scale-95"
-            >
-              Создать GDD <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {showCreate && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6">
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-xl rounded-[4rem] p-12 shadow-2xl animate-in zoom-in duration-500 relative overflow-hidden">
-            <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary-600/10 rounded-full blur-[80px]" />
-            <h3 className="text-4xl font-black mb-12 text-center tracking-tighter text-white relative z-10">Проектирование</h3>
-            <form onSubmit={handleSubmit} className="space-y-10 relative z-10">
-              <div className="space-y-4">
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4">Название Проекта</label>
+            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+              <div className="space-y-1.5">
+                <label className="inspector-label ml-1">Название проекта</label>
                 <input 
                   type="text" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-slate-950/50 border-2 border-slate-800 rounded-[2rem] px-8 py-5 outline-none focus:border-primary-500 transition-all text-white text-xl font-bold placeholder-slate-800"
-                  placeholder="The Eternal Forge"
+                  className="unity-input w-full py-2.5 text-sm font-medium"
+                  placeholder="Название вашей игры"
                   required
                   autoFocus
                 />
               </div>
-              <div className="space-y-4">
-                <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] ml-4">Жанр / Сеттинг</label>
+              <div className="space-y-1.5">
+                <label className="inspector-label ml-1">Жанр / Шаблон</label>
                 <input 
                   type="text" 
                   list="genre-suggestions"
                   value={genre}
                   onChange={(e) => setGenre(e.target.value)}
-                  className="w-full bg-slate-950/50 border-2 border-slate-800 rounded-[2rem] px-8 py-5 outline-none focus:border-primary-500 transition-all text-white text-xl font-bold placeholder-slate-800"
-                  placeholder="Sci-Fi Souls-like"
+                  className="unity-input w-full py-2.5 text-sm font-medium"
+                  placeholder="Например: RPG"
                   required
                 />
                 <datalist id="genre-suggestions">
                   {RECOMMENDED_GENRES.map(g => <option key={g} value={g} />)}
                 </datalist>
               </div>
-              <div className="flex flex-col sm:flex-row gap-5 pt-6">
+              <div className="pt-4 flex justify-end gap-3">
                 <button 
                   type="button"
                   onClick={() => setShowCreate(false)}
-                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-400 font-black py-5 rounded-[2rem] transition-all uppercase tracking-widest text-xs"
+                  className="unity-button px-6 py-2"
                 >
                   Отмена
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 bg-primary-600 hover:bg-primary-500 text-white font-black py-5 rounded-[2rem] transition-all shadow-2xl shadow-primary-600/20 uppercase tracking-widest text-xs"
+                  className="unity-button-primary px-6 py-2"
                 >
-                  Инициализация
+                  Создать
                 </button>
               </div>
             </form>
