@@ -1,7 +1,8 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
+// В статических окружениях обязательно нужно указывать расширение файла
+import App from './App.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
