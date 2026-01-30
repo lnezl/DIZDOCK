@@ -7,41 +7,9 @@
   <title>Arcane: Unity Game Architect</title>
   
   <script>
-    // 1. Инициализация окружения
+    // Инициализация окружения
     window.process = { env: { API_KEY: '' }, cwd: () => '/', browser: true };
-    window.APP_START_TIME = Date.now();
-
-    // 2. Глобальный перехватчик ошибок
-    window.onerror = function(msg, url, line, col, error) {
-      console.error("BOOT_ERROR:", msg);
-      showError(`Ошибка загрузки: ${msg}`);
-      return false;
-    };
-
-    function showError(text) {
-      const root = document.getElementById('root');
-      if (root) {
-        root.innerHTML = `
-          <div style="padding: 40px; color: #ff5f56; font-family: sans-serif; background: #1a1a1a; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center;">
-            <div style="max-width: 500px; background: #222; padding: 30px; border: 1px solid #444; border-radius: 12px; box-shadow: 0 20px-50px rgba(0,0,0,0.5);">
-              <h2 style="color: #fff; margin-bottom: 10px;">Система не отвечает</h2>
-              <p style="color: #888; font-size: 14px; margin-bottom: 20px;">${text}</p>
-              <div style="background: #000; padding: 10px; border-radius: 6px; margin-bottom: 20px;">
-                <code style="font-size: 11px; color: #aaa;">Совет: Нажмите Ctrl+F5 или очистите кэш сайта</code>
-              </div>
-              <button onclick="location.reload()" style="background: #4287f5; color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold;">ПОПРОБОВАТЬ СНОВА</button>
-            </div>
-          </div>
-        `;
-      }
-    }
-
-    // Авто-диагностика: если через 10 секунд всё еще крутится спиннер
-    setTimeout(() => {
-      if (!window.APP_LOADED) {
-        showError("Загрузка скриптов занимает слишком много времени. Возможно, блокировщик рекламы или медленный интернет мешают загрузке библиотек.");
-      }
-    }, 10000);
+    window.APP_LOADED = false;
   </script>
 
   <script src="https://cdn.tailwindcss.com"></script>
@@ -91,9 +59,37 @@
   <div id="root">
     <div class="loading-screen">
       <div class="spinner"></div>
-      <p style="margin-top: 15px; color: #4287f5; font-size: 10px; font-weight: bold; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace;">ЗАПУСК ГИПЕРВИЗОРА...</p>
+      <p id="boot-text" style="margin-top: 15px; color: #4287f5; font-size: 10px; font-weight: bold; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace;">ЗАПУСК ГИПЕРВИЗОРА...</p>
     </div>
   </div>
-  <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
+
+  <!-- Принудительно загружаем index.tsx как модуль через Babel -->
+  <script type="text/babel" data-presets="react,typescript" data-type="module" src="index.tsx"></script>
+
+  <script>
+    // Если через 7 секунд приложение не подало признаков жизни - показываем инструкцию по очистке кэша
+    setTimeout(() => {
+      if (!window.APP_LOADED) {
+        document.getElementById('root').innerHTML = `
+          <div style="padding: 40px; color: #ff5f56; font-family: sans-serif; background: #1a1a1a; height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center;">
+            <div style="max-width: 500px; background: #222; padding: 30px; border: 1px solid #444; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+              <h2 style="color: #fff; margin-bottom: 10px; font-size: 20px;">Конфликт кэша браузера</h2>
+              <p style="color: #888; font-size: 13px; margin-bottom: 20px; line-height: 1.5;">Браузер сохранил старые настройки библиотек. Для запуска приложения необходимо принудительно обновить страницу.</p>
+              
+              <div style="background: #000; padding: 15px; border-radius: 8px; margin-bottom: 25px; text-align: left; border: 1px solid #333;">
+                <p style="color: #4287f5; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase;">Инструкция:</p>
+                <ol style="color: #ccc; font-size: 12px; padding-left: 20px; line-height: 1.6;">
+                  <li>Нажмите <b>Ctrl + F5</b> (или <b>Cmd + Shift + R</b> на Mac).</li>
+                  <li>Если не помогло — откройте сайт в <b>режиме инкогнито</b>.</li>
+                </ol>
+              </div>
+              
+              <button onclick="location.reload(true)" style="background: #4287f5; color: white; border: none; padding: 12px 30px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s;">ОБНОВИТЬ СЕЙЧАС</button>
+            </div>
+          </div>
+        `;
+      }
+    }, 7000);
+  </script>
 </body>
 </html>
