@@ -221,9 +221,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
                 {activeView === section.id && <SettingsIcon />}
               </div>
             ))}
-            {filteredSections.length === 0 && searchTerm && (
-              <p className="text-[10px] text-slate-700 italic px-3 py-2">Ничего не найдено</p>
-            )}
           </nav>
         </div>
 
@@ -245,9 +242,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
                   {activeView === flow.id && <SettingsIcon />}
                 </div>
               ))}
-              {filteredFlows.length === 0 && searchTerm && (
-                <p className="text-[10px] text-slate-700 italic px-3 py-2">Ничего не найдено</p>
-              )}
            </div>
         </div>
       </div>
