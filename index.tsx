@@ -1,17 +1,19 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-// В статических окружениях обязательно нужно указывать расширение файла
 import App from './App.tsx';
+
+console.log("Arcane Bootloader: Starting application...");
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+  console.error("Critical: Root element not found!");
+} else {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+  console.log("Arcane Bootloader: Render initiated.");
 }
-
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
