@@ -1,9 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 
-// Сигнализируем HTML-коду, что React начал выполнение
+// Мгновенно сообщаем, что файл начал исполняться
 (window as any).APP_LOADED = true;
 
 const init = () => {
@@ -18,8 +17,18 @@ const init = () => {
       </React.StrictMode>
     );
     console.log("Arcane Hub: Запущен успешно.");
-  } catch (error) {
+    
+    // Скрываем плашку ошибок если вдруг она появилась
+    const errDisp = document.getElementById('error-display');
+    if (errDisp) errDisp.style.display = 'none';
+    
+  } catch (error: any) {
     console.error("Render Error:", error);
+    const display = document.getElementById('error-display');
+    if (display) {
+      display.style.display = 'block';
+      display.innerHTML += `<div>[RENDER ERROR]: ${error?.message || 'Unknown'}</div>`;
+    }
   }
 };
 
