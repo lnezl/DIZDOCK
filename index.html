@@ -51,6 +51,15 @@
       font-family: 'JetBrains Mono', monospace; font-size: 10px; z-index: 9999; border-radius: 4px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-left: 4px solid #ff5f56;
     }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .unity-input { background: #1a1a1a; border: 1px solid #404040; color: #dcdcdc; padding: 4px 8px; border-radius: 2px; outline: none; }
+    .unity-input:focus { border-color: #4287f5; }
+    .unity-button { background: #3c3c3c; border: 1px solid #404040; color: #dcdcdc; padding: 4px 12px; border-radius: 2px; cursor: pointer; }
+    .unity-button:hover { background: #454545; }
+    .unity-button-primary { background: #4287f5; border: 1px solid #4287f5; color: white; padding: 4px 12px; border-radius: 2px; cursor: pointer; }
+    .unity-button-primary:hover { background: #5094ff; }
+    .inspector-label { font-size: 10px; font-weight: bold; color: #a0a0a0; text-transform: uppercase; }
   </style>
 
 <script type="importmap">
@@ -72,7 +81,7 @@
   <div id="root">
     <div class="loading-screen">
       <div class="spinner"></div>
-      <p style="margin-top: 20px; color: #4287f5; font-size: 9px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Система Arcane Инициализирована</p>
+      <p style="margin-top: 20px; color: #4287f5; font-size: 9px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Инициализация Arcane...</p>
     </div>
   </div>
 
@@ -80,8 +89,7 @@
     <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">СИСТЕМНЫЙ СБОЙ</div>
   </div>
 
-  <!-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: добавлен data-type="module" -->
-  <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
+  <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
 
   <script>
     setTimeout(() => {
@@ -92,11 +100,11 @@
           <div style="margin-top: 10px; font-size: 11px;">
             <p><b>Диагноз:</b> Ошибка загрузки модулей. GitHub Pages может отдавать файлы с задержкой.</p>
             <p style="margin-top:5px;">Нажмите <b>Ctrl+F5</b> сейчас.</p>
-            <button onclick="location.reload(true)" style="margin-top: 10px; background: white; color: black; border: none; padding: 5px 10px; cursor: pointer; font-weight: bold;">ОБНОВИТЬ КЭШ</button>
+            <button onclick="location.reload(true)" style="margin-top: 10px; background: white; color: black; border: none; padding: 5px 10px; cursor: pointer; font-weight: bold;">ОБНОВИТЬ СТРАНИЦУ</button>
           </div>
         `;
       }
-    }, 10000);
+    }, 12000);
   </script>
 </body>
 </html>
