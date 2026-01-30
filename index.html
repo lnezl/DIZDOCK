@@ -7,10 +7,24 @@
   <title>Arcane: Unity Game Architect</title>
   
   <script>
+    // Инициализация процесса до загрузки модулей
     window.process = { 
       env: { API_KEY: '' },
       cwd: () => '/',
       browser: true
+    };
+    
+    // Перехват ошибок загрузки
+    window.onerror = function(msg, url, line, col, error) {
+      console.error("Global Error: ", msg, " at ", url, ":", line);
+      const root = document.getElementById('root');
+      if (root && root.innerHTML.includes('loading-screen')) {
+        root.innerHTML = `<div style="padding: 20px; color: #ff5f56; font-family: monospace;">
+          <h2 style="margin-bottom: 10px;">Ошибка запуска приложения</h2>
+          <p>${msg}</p>
+          <p style="font-size: 10px; color: #888;">Проверьте консоль браузера для деталей.</p>
+        </div>`;
+      }
     };
   </script>
 
@@ -93,8 +107,20 @@
       height: 100vh;
       background: #1c1c1c;
     }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(66, 135, 245, 0.2);
+      border-top-color: #4287f5;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     
-    /* Code Highlighting Sim */
     .code-comment { color: #6a9955; }
     .code-keyword { color: #569cd6; }
     .code-class { color: #4ec9b0; }
@@ -120,9 +146,10 @@
   <div id="root">
     <div class="loading-screen">
       <div class="spinner"></div>
-      <p style="margin-top: 15px; color: #888; font-size: 10px; letter-spacing: 1px;">LAUNCHING UNITY WORKSPACE...</p>
+      <p style="margin-top: 15px; color: #888; font-size: 10px; letter-spacing: 1px; font-family: monospace;">LAUNCHING UNITY WORKSPACE...</p>
     </div>
   </div>
-  <script type="text/babel" data-type="module" src="index.tsx"></script>
+  <!-- Добавлены data-presets для корректной компиляции TSX в браузере -->
+  <script type="text/babel" data-presets="react,typescript" data-type="module" src="index.tsx"></script>
 </body>
 </html>

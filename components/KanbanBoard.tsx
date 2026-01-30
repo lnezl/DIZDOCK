@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { GameProject, Task, TaskPriority, ChecklistItem, TaskComment, BoardColumn } from '../types';
+import { GameProject, Task, TaskPriority, ChecklistItem, BoardColumn } from '../types';
 
 interface KanbanBoardProps {
   project: GameProject;
@@ -13,10 +13,6 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [newChecklistItem, setNewChecklistItem] = useState('');
-  const [newComment, setNewComment] = useState('');
-  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const checkReminders = () => {
@@ -60,7 +56,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
   };
 
   const addColumn = () => {
-    const colors = ['bg-slate-700', 'bg-sky-500', 'bg-primary-500', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'];
+    const colors = ['bg-slate-500', 'bg-sky-500', 'bg-unity-accent', 'bg-emerald-500', 'bg-rose-500', 'bg-indigo-500'];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     const newColumn: BoardColumn = {
       id: crypto.randomUUID(),
@@ -80,22 +76,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
     }
   };
 
-  const updateColumnTitle = (columnId: string, newTitle: string) => {
-    onUpdate({
-      ...project,
-      columns: project.columns.map(c => c.id === columnId ? { ...c, title: newTitle } : c)
-    });
-  };
-
   const editingTask = project.tasks.find(t => t.id === editingTaskId);
-
-  const addChecklistItem = () => {
-    if (newChecklistItem.trim() && editingTask) {
-      const item: ChecklistItem = { id: crypto.randomUUID(), text: newChecklistItem, completed: false };
-      updateTask({ ...editingTask, checklist: [...editingTask.checklist, item] });
-      setNewChecklistItem('');
-    }
-  };
 
   const toggleChecklistItem = (id: string) => {
     if (editingTask) {
@@ -109,13 +90,12 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
   const renderColumn = (column: BoardColumn) => {
     const tasks = (project.tasks || []).filter(t => t.status === column.id);
     const isOver = dragOverColumnId === column.id;
-    const isEditing = editingColumnId === column.id;
 
     return (
       <div 
         key={column.id}
-        className={`flex flex-col w-[300px] shrink-0 rounded-[2rem] p-5 h-full border transition-all ${
-          isOver ? 'bg-primary-500/10 border-primary-500/30 ring-2 ring-primary-500/20' : 'bg-slate-900/40 border-slate-800/60'
+        className={`flex flex-col w-[280px] shrink-0 rounded-sm p-1.5 h-full transition-all border ${
+          isOver ? 'bg-unity-panel border-unity-accent ring-1 ring-unity-accent' : 'bg-unity-panel border-unity-border'
         }`}
         onDragOver={(e) => { e.preventDefault(); setDragOverColumnId(column.id); }}
         onDragLeave={() => setDragOverColumnId(null)}
@@ -126,73 +106,66 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
           setDragOverColumnId(null);
         }}
       >
-        <div className="flex items-center justify-between mb-5 px-1 group/colheader">
-          <div className="flex items-center gap-3 overflow-hidden flex-1">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${column.color}`} />
-            {isEditing ? (
-              <input 
-                autoFocus
-                className="bg-slate-950 border border-primary-500/30 rounded px-2 py-0.5 text-[10px] font-black text-white outline-none w-full uppercase"
-                value={column.title}
-                onChange={(e) => updateColumnTitle(column.id, e.target.value)}
-                onBlur={() => setEditingColumnId(null)}
-                onKeyDown={(e) => e.key === 'Enter' && setEditingColumnId(null)}
-              />
-            ) : (
-              <h3 
-                onClick={() => setEditingColumnId(column.id)}
-                className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate cursor-text hover:text-white transition-colors"
-              >
-                {column.title} <span className="opacity-30 ml-1">({tasks.length})</span>
-              </h3>
-            )}
+        <div className="flex items-center justify-between mb-2 px-2 py-1 bg-unity-header/30 rounded-t-sm border-b border-unity-border group/colheader">
+          <div className="flex items-center gap-2 overflow-hidden flex-1">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${column.color}`} />
+            <h3 className="text-[10px] font-bold text-unity-dim uppercase tracking-wider truncate">
+              {column.title}
+            </h3>
+            <span className="text-[9px] text-unity-stroke font-bold">[{tasks.length}]</span>
           </div>
           <button 
             onClick={() => deleteColumn(column.id)}
-            className="opacity-0 group-hover/colheader:opacity-100 p-1 text-slate-600 hover:text-rose-500 transition-all"
+            className="opacity-0 group-hover/colheader:opacity-100 p-1 text-unity-stroke hover:text-rose-500 transition-all"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar min-h-[400px]">
+        <div className="flex-1 overflow-y-auto space-y-1.5 no-scrollbar min-h-[400px] p-1 bg-unity-input/20">
           {tasks.map(task => (
             <div 
               key={task.id} 
               draggable 
               onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)} 
               onClick={() => setEditingTaskId(task.id)} 
-              className="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl shadow-xl hover:border-primary-500/40 transition-all cursor-grab active:cursor-grabbing group/task"
+              className="bg-unity-panel border border-unity-stroke p-3 rounded-sm shadow-sm hover:border-unity-accent/50 transition-all cursor-grab active:cursor-grabbing group/task relative"
             >
-              <div className="flex justify-between items-start mb-3">
-                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${task.priority === 'urgent' ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-500'}`}>{task.priority}</span>
-                <span className="text-[10px] font-mono text-primary-500 font-bold">{task.progress}%</span>
+              <div className="flex justify-between items-start mb-1.5">
+                <div className={`w-1 h-3 rounded-full ${task.priority === 'urgent' ? 'bg-rose-500' : 'bg-unity-stroke'}`} />
+                <span className="text-[9px] font-mono text-unity-accent font-bold">{task.progress}%</span>
               </div>
-              <p className="text-[14px] text-slate-200 font-bold leading-tight group-hover/task:text-white transition-colors">{task.title}</p>
+              <p className="text-[12px] text-unity-text font-medium leading-snug group-hover/task:text-white transition-colors line-clamp-2">{task.title}</p>
+              {task.checklist.length > 0 && (
+                <div className="mt-2 flex items-center gap-1.5 opacity-40">
+                   <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                   <span className="text-[8px] font-bold">{task.checklist.filter(c => c.completed).length}/{task.checklist.length}</span>
+                </div>
+              )}
             </div>
           ))}
           
           {isAddingTaskTo === column.id ? (
-            <div className="bg-slate-950 p-5 rounded-2xl border-2 border-primary-500/50 shadow-2xl animate-in zoom-in duration-200">
+            <div className="bg-unity-panel p-3 rounded-sm border border-unity-accent shadow-xl animate-in fade-in slide-in-from-top-1">
               <input 
                 autoFocus 
                 value={newTaskTitle} 
                 onChange={(e) => setNewTaskTitle(e.target.value)} 
                 onKeyDown={(e) => e.key === 'Enter' && addTask(column.id)} 
-                className="w-full bg-transparent text-sm text-white outline-none mb-4 font-bold placeholder-slate-800" 
-                placeholder="Что нужно сделать?" 
+                className="w-full bg-unity-input border border-unity-border text-xs text-white outline-none mb-2 px-2 py-1 rounded-sm" 
+                placeholder="Название задачи..." 
               />
-              <div className="flex gap-2">
-                <button onClick={() => setIsAddingTaskTo(null)} className="px-3 text-[9px] font-black text-slate-500 uppercase">Отмена</button>
-                <button onClick={() => addTask(column.id)} className="flex-1 bg-primary-600 text-white text-[9px] font-black uppercase py-2.5 rounded-xl hover:bg-primary-500 transition-all">Добавить</button>
+              <div className="flex gap-1">
+                <button onClick={() => setIsAddingTaskTo(null)} className="flex-1 bg-unity-stroke hover:bg-unity-hover text-[9px] font-bold uppercase py-1 rounded-sm">Отмена</button>
+                <button onClick={() => addTask(column.id)} className="flex-1 bg-unity-accent text-white text-[9px] font-bold uppercase py-1 rounded-sm">Добавить</button>
               </div>
             </div>
           ) : (
             <button 
               onClick={() => setIsAddingTaskTo(column.id)} 
-              className="w-full py-4 rounded-2xl text-slate-600 border border-dashed border-slate-800 hover:border-primary-500/30 hover:text-primary-400 transition-all text-[10px] font-black uppercase tracking-widest"
+              className="w-full py-2 rounded-sm text-unity-dim border border-dashed border-unity-stroke hover:bg-unity-hover hover:text-unity-text transition-all text-[9px] font-bold uppercase tracking-wider"
             >
-              + Добавить задачу
+              + Новая задача
             </button>
           )}
         </div>
@@ -201,115 +174,114 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ project, onUpdate }) => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="mb-10 flex items-center justify-between">
-        <h2 className="text-4xl font-black text-white tracking-tighter">Производство</h2>
-        <div className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] hidden md:block">
-          Управляйте этапами и задачами вашего проекта
+    <div className="h-full flex flex-col overflow-hidden animate-in fade-in duration-500">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+           <svg className="w-5 h-5 text-unity-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/></svg>
+           <h2 className="text-xl font-bold text-white tracking-tight">Console: Производство</h2>
         </div>
+        <button 
+          onClick={addColumn}
+          className="unity-button-primary text-[10px] uppercase font-bold tracking-wider px-4 shadow-md"
+        >
+          Добавить Этап
+        </button>
       </div>
 
-      <div className="flex-1 overflow-x-auto no-scrollbar pb-10">
-        <div className="flex gap-8 h-full items-start px-1">
+      <div className="flex-1 overflow-x-auto no-scrollbar pb-6">
+        <div className="flex gap-3 h-full items-start">
           {project.columns.map(renderColumn)}
-          
-          {/* Кнопка добавления новой колонки */}
-          <button 
-            onClick={addColumn}
-            className="flex flex-col items-center justify-center w-[300px] shrink-0 rounded-[2rem] h-40 border-2 border-dashed border-slate-800 hover:border-primary-500/30 text-slate-700 hover:text-primary-500 transition-all group"
-          >
-            <div className="w-12 h-12 rounded-full border-2 border-dashed border-slate-800 flex items-center justify-center mb-4 group-hover:border-primary-500/50 transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </div>
-            <span className="text-[11px] font-black uppercase tracking-widest">Новый этап</span>
-          </button>
-          
-          {/* Пустой блок в конце для отступа */}
-          <div className="w-10 shrink-0" />
+          <div className="w-20 shrink-0" />
         </div>
       </div>
 
       {editingTask && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4" onClick={() => setEditingTaskId(null)}>
-          <div className="bg-slate-900 border border-slate-800 w-full max-w-4xl max-h-[90vh] rounded-[3rem] p-10 shadow-2xl relative overflow-y-auto no-scrollbar animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-start mb-10">
-              <div className="flex-1">
-                <input className="bg-transparent text-3xl font-black text-white outline-none w-full mb-2 tracking-tight" value={editingTask.title} onChange={e => updateTask({ ...editingTask, title: e.target.value })} />
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Статус:</span>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setEditingTaskId(null)}>
+          <div className="bg-unity-panel border border-unity-stroke w-full max-w-2xl max-h-[85vh] rounded-sm shadow-2xl relative flex flex-col animate-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-unity-header px-4 py-2 border-b border-unity-border flex justify-between items-center">
+               <span className="text-[10px] font-bold text-unity-dim uppercase">Inspector: Task Detail</span>
+               <button onClick={() => setEditingTaskId(null)} className="text-unity-dim hover:text-white">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" strokeWidth="2.5"/></svg>
+               </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="space-y-1">
+                <label className="inspector-label">Название</label>
+                <input className="unity-input w-full text-base font-bold" value={editingTask.title} onChange={e => updateTask({ ...editingTask, title: e.target.value })} />
+              </div>
+
+              <div className="space-y-1">
+                <label className="inspector-label">Описание</label>
+                <textarea className="unity-input w-full h-32 resize-none" value={editingTask.description} placeholder="Опишите детали..." onChange={e => updateTask({ ...editingTask, description: e.target.value })} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="inspector-label">Приоритет</label>
                   <select 
-                    className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1 text-[10px] text-primary-400 font-black uppercase outline-none"
-                    value={editingTask.status}
-                    onChange={(e) => updateTask({ ...editingTask, status: e.target.value })}
+                    className="unity-input w-full"
+                    value={editingTask.priority}
+                    onChange={(e) => updateTask({ ...editingTask, priority: e.target.value as TaskPriority })}
                   >
-                    {project.columns.map(c => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
-                    ))}
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
                   </select>
                 </div>
+                <div className="space-y-1">
+                  <label className="inspector-label">Прогресс ({editingTask.progress}%)</label>
+                  <div className="h-6 bg-unity-input border border-unity-border rounded-sm relative overflow-hidden">
+                    <div className="h-full bg-unity-accent transition-all duration-300" style={{ width: `${editingTask.progress}%` }} />
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setEditingTaskId(null)} className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-2xl transition-all shadow-xl"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+
+              <div className="space-y-2">
+                <label className="inspector-label">Чек-лист</label>
+                <div className="space-y-1.5">
+                  {editingTask.checklist.map(item => (
+                    <div key={item.id} className="flex items-center gap-2 group/checkitem">
+                      <input 
+                        type="checkbox" 
+                        checked={item.completed} 
+                        onChange={() => toggleChecklistItem(item.id)}
+                        className="w-3.5 h-3.5 rounded-sm border-unity-border bg-unity-input text-unity-accent focus:ring-0"
+                      />
+                      <span className={`text-xs flex-1 ${item.completed ? 'text-unity-stroke line-through' : 'text-unity-text'}`}>{item.text}</span>
+                      <button onClick={() => updateTask({ ...editingTask, checklist: editingTask.checklist.filter(i => i.id !== item.id) })} className="opacity-0 group-hover/checkitem:opacity-100 text-rose-500">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" strokeWidth="3"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <input className="unity-input flex-1 py-1" value={newChecklistItem} placeholder="Добавить пункт..." onChange={e => setNewChecklistItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && (()=>{
+                      if (newChecklistItem.trim()) {
+                        const item: ChecklistItem = { id: crypto.randomUUID(), text: newChecklistItem, completed: false };
+                        updateTask({ ...editingTask, checklist: [...editingTask.checklist, item] });
+                        setNewChecklistItem('');
+                      }
+                    })()} />
+                    <button onClick={()=>{
+                       if (newChecklistItem.trim()) {
+                        const item: ChecklistItem = { id: crypto.randomUUID(), text: newChecklistItem, completed: false };
+                        updateTask({ ...editingTask, checklist: [...editingTask.checklist, item] });
+                        setNewChecklistItem('');
+                      }
+                    }} className="unity-button px-3">+</button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              <div className="lg:col-span-2 space-y-10">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Описание задачи</label>
-                  <textarea className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-6 text-sm text-slate-300 min-h-[150px] resize-none focus:border-primary-500/30 transition-all outline-none" value={editingTask.description} placeholder="Опишите детали..." onChange={e => updateTask({ ...editingTask, description: e.target.value })} />
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Чек-лист прогресса</label>
-                    <span className="text-[10px] font-mono text-primary-500">{editingTask.progress}%</span>
-                  </div>
-                  <div className="space-y-3">
-                    {editingTask.checklist.map(item => (
-                      <div key={item.id} className="flex items-center gap-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-800/50 group/checkitem">
-                        <button onClick={() => toggleChecklistItem(item.id)} className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${item.completed ? 'bg-emerald-500 border-emerald-500' : 'border-slate-800 hover:border-emerald-500/50'}`}>
-                          {item.completed && <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>}
-                        </button>
-                        <span className={`text-[13px] font-medium flex-1 ${item.completed ? 'text-slate-600 line-through' : 'text-slate-300'}`}>{item.text}</span>
-                        <button onClick={() => updateTask({ ...editingTask, checklist: editingTask.checklist.filter(i => i.id !== item.id) })} className="opacity-0 group-hover/checkitem:opacity-100 text-rose-500 p-1"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-                      </div>
-                    ))}
-                    <div className="flex gap-3 mt-4">
-                      <input className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-xs text-white focus:border-primary-500/30 outline-none" value={newChecklistItem} placeholder="Добавить пункт..." onChange={e => setNewChecklistItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addChecklistItem()} />
-                      <button onClick={addChecklistItem} className="bg-slate-800 hover:bg-primary-600 px-6 rounded-2xl text-white transition-all font-black text-xl">+</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-8">
-                <div className="bg-slate-950/40 border border-slate-800 rounded-3xl p-6 space-y-6">
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Приоритет</label>
-                    <div className="flex gap-2">
-                      {(['low', 'normal', 'urgent'] as TaskPriority[]).map(p => (
-                        <button 
-                          key={p} 
-                          onClick={() => updateTask({ ...editingTask, priority: p })}
-                          className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${
-                            editingTask.priority === p 
-                              ? (p === 'urgent' ? 'bg-rose-500 text-white border-rose-500' : 'bg-primary-500 text-white border-primary-500')
-                              : 'bg-slate-900 border-slate-800 text-slate-600 hover:border-slate-700'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => { if (confirm('Удалить эту задачу навсегда?')) { onUpdate({ ...project, tasks: project.tasks.filter(t => t.id !== editingTask.id) }); setEditingTaskId(null); } }} 
-                  className="w-full py-4 border-2 border-rose-500/20 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-xl shadow-rose-500/5"
-                >
-                  Удалить задачу
-                </button>
-              </div>
+            <div className="bg-unity-header px-6 py-3 border-t border-unity-border flex justify-between">
+              <button 
+                onClick={() => { if (confirm('Удалить эту задачу?')) { onUpdate({ ...project, tasks: project.tasks.filter(t => t.id !== editingTask.id) }); setEditingTaskId(null); } }} 
+                className="text-rose-500 text-[10px] font-bold uppercase hover:underline"
+              >
+                Удалить задачу
+              </button>
+              <button onClick={() => setEditingTaskId(null)} className="unity-button-primary px-6">Готово</button>
             </div>
           </div>
         </div>

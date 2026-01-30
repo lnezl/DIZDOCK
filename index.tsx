@@ -9,11 +9,15 @@ const rootElement = document.getElementById('root');
 if (!rootElement) {
   console.error("Critical: Root element not found!");
 } else {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-  console.log("Arcane Bootloader: Render initiated.");
+  try {
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    console.log("Arcane Bootloader: Render initiated successfully.");
+  } catch (error) {
+    console.error("Critical Render Error:", error);
+  }
 }

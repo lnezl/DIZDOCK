@@ -35,9 +35,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
     }
   }, [history, isLoading]);
 
-  // Generate contextual suggestions based on current view/active section
   const contextualActions = useMemo<ContextualAction[]>(() => {
-    // 1. Architecture Overview Context
     if (activeView === 'architecture-overview-id') {
       return [
         { label: 'Анализ бюджета', action: 'Проанализируй текущую стоимость проекта и посоветуй, как оптимизировать расходы.' },
@@ -46,7 +44,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
       ];
     }
     
-    // 2. Kanban Board Context
     if (activeView === 'kanban-board-special-id') {
       return [
         { label: 'Генерация задач', action: 'Предложи список из 10 приоритетных задач для реализации MVP.' },
@@ -55,60 +52,31 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
       ];
     }
 
-    // 3. StoryFlow Context
-    const flow = project.storyFlows.find(f => f.id === activeView);
-    if (flow) {
-      return [
-        { label: 'Сюжетный поворот', action: `Предложи неожиданный сюжетный поворот для схемы "${flow.name}".` },
-        { label: 'Проверка логики', action: 'Найди логические дыры в текущей схеме переходов.' },
-        { label: 'Диалоги', action: 'Напиши черновик диалога для одной из ключевых сцен в этой схеме.' }
-      ];
-    }
-
-    // 4. Specific GDD Section Context
     if (activeSection) {
-      const baseActions = [
+      return [
         { label: 'Развернуть мысль', action: `Дополни раздел "${activeSection.title}" более глубокими деталями.` },
-        { label: 'Проф. редактура', action: `Перепиши текущее содержание раздела "${activeSection.title}" в более профессиональном тоне.` }
+        { label: 'Проф. редактура', action: `Перепиши текущее содержание раздела "${activeSection.title}" в более профессиональном тоне.` },
+        { label: 'Поиск референсов', action: `Найди примеры реализации раздела "${activeSection.title}" в популярных играх.` }
       ];
-
-      // Add section-specific prompts
-      if (activeSection.id === 'concept') {
-        baseActions.push({ label: 'Elevator Pitch', action: 'Сформулируй краткую презентацию игры (Elevator Pitch) для издателя.' });
-      } else if (activeSection.id === 'mechanics') {
-        baseActions.push({ label: 'Геймплейный цикл', action: 'Как сделать эти механики более аддиктивными и удерживающими игрока?' });
-      } else if (activeSection.id === 'story') {
-        baseActions.push({ label: 'Проработка антагониста', action: 'Предложи глубокую мотивацию для главного злодея этого мира.' });
-      }
-
-      return baseActions;
     }
 
-    // Default actions
     return [
-      { label: 'Общий аудит GDD', action: 'Проведи краткий аудит всего текущего документа и укажи на слабые места.' },
+      { label: 'Общий аудит', action: 'Проведи краткий аудит всего текущего документа и укажи на слабые места.' },
       { label: 'Тренды рынка', action: `Какие сейчас главные тренды в жанре ${project.genre}?` }
     ];
-  }, [activeView, activeSection, project.storyFlows, project.genre]);
+  }, [activeView, activeSection, project.genre]);
 
   const handleBrainstorm = async (forcedQuery?: string) => {
     const targetQuery = forcedQuery || query;
-    if (isLoading || (!targetQuery && history.length === 0 && !activeSection?.content)) return;
+    if (isLoading || (!targetQuery && history.length === 0)) return;
 
     setIsLoading(true);
-    const userPrompt = targetQuery || `Дай экспертный совет по разделу "${activeSection?.title || 'Архитектура'}".`;
+    const userPrompt = targetQuery;
     
-    const context = `Игра: ${project.title} (${project.genre}). 
-                     Текущий экран: ${activeView}. 
-                     ${activeSection ? `Раздел GDD: ${activeSection.title}. Текст: ${activeSection.content}` : 'Общий контекст проекта.'}`;
+    const context = `Игра: ${project.title} (${project.genre}). Экран: ${activeView}. ${activeSection ? `Раздел: ${activeSection.title}. Текст: ${activeSection.content}` : ''}`;
 
     const result = await getGeminiResponse(userPrompt, context);
     
-    const links = result.groundingChunks?.map((chunk: any) => ({
-      title: chunk.web?.title || 'Источник',
-      uri: chunk.web?.uri || '#'
-    })).filter((link: any) => link.uri !== '#');
-
     setHistory(prev => [
       ...prev, 
       { role: 'user', text: userPrompt }, 
@@ -116,7 +84,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
         role: 'assistant', 
         text: result.text, 
         isError: result.isError,
-        links: links
+        links: result.groundingChunks?.map((chunk: any) => ({ title: chunk.web?.title || 'Источник', uri: chunk.web?.uri || '#' }))
       }
     ]);
     setQuery('');
@@ -124,118 +92,93 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-950/40 relative">
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 ${isLoading ? 'bg-primary-600 animate-pulse' : 'bg-slate-800'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-          </div>
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-primary-500">Arcane AI</h2>
-            <p className="text-[8px] text-slate-500 font-bold uppercase">{isLoading ? 'Анализ...' : 'Ready'}</p>
-          </div>
+    <div className="flex flex-col h-full bg-unity-panel border-l border-unity-border animate-in slide-in-from-right duration-300">
+      <div className="bg-unity-header px-4 py-2 border-b border-unity-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={`w-1.5 h-1.5 rounded-full ${isLoading ? 'bg-unity-accent animate-pulse' : 'bg-emerald-500'}`} />
+          <span className="text-[10px] font-bold text-unity-dim uppercase tracking-widest">Arcane Intelligence</span>
         </div>
-        {history.length > 0 && (
-          <button 
-            onClick={() => setHistory([])}
-            className="text-[8px] font-black text-slate-600 hover:text-rose-500 uppercase tracking-widest transition-colors"
-          >
-            Clear
-          </button>
-        )}
+        <button onClick={() => setHistory([])} className="text-[9px] text-unity-stroke hover:text-white uppercase">Clear</button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar">
-        {/* Welcome message and contextual suggestions when chat is empty */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
         {history.length === 0 && !isLoading && (
-          <div className="text-center py-6">
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mb-8 opacity-60">Контекстные действия</p>
-            <div className="flex flex-col gap-3">
-              {contextualActions.map((btn, i) => (
-                <button 
-                  key={i}
-                  onClick={() => handleBrainstorm(btn.action)}
-                  className="text-left group relative p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-primary-500/50 transition-all shadow-xl hover:shadow-primary-500/5 hover:-translate-y-1"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-bold text-slate-300 group-hover:text-primary-400 transition-colors">{btn.label}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-slate-700 group-hover:text-primary-500 group-hover:translate-x-1 transition-all"><path d="m9 18 6-6-6-6"/></svg>
-                  </div>
-                </button>
-              ))}
-            </div>
+          <div className="space-y-4 opacity-80 mt-2">
+             <div className="p-3 bg-unity-dark border border-unity-stroke rounded-sm">
+                <p className="text-[11px] text-unity-dim leading-relaxed">Привет! Я твой ИИ-архитектор. Готов помочь с дизайном, кодом или балансом. Выбери действие или напиши свой вопрос ниже.</p>
+             </div>
+             <div className="space-y-1.5">
+                <p className="text-[9px] font-bold text-unity-dim uppercase px-1">Рекомендации:</p>
+                {contextualActions.map((btn, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => handleBrainstorm(btn.action)}
+                    className="w-full text-left p-2.5 bg-unity-dark border border-unity-border hover:border-unity-accent rounded-sm text-[11px] transition-all group"
+                  >
+                    <span className="text-unity-text group-hover:text-white">{btn.label}</span>
+                  </button>
+                ))}
+             </div>
           </div>
         )}
 
         {history.map((msg, idx) => (
-          <div key={idx} className={`p-4 rounded-2xl text-[13px] border ${
-            msg.role === 'user' 
-              ? 'bg-primary-600/5 text-primary-100 border-primary-500/10' 
-              : 'bg-slate-900 text-slate-300 border-slate-800 shadow-xl relative overflow-hidden'
-          }`}>
-            {msg.role === 'assistant' && (
-              <div className="absolute top-0 left-0 w-1 h-full bg-primary-600/20" />
-            )}
-            <span className="font-black text-[8px] uppercase tracking-widest opacity-40 block mb-2">
-              {msg.role === 'user' ? 'Архитектор' : 'Система'}
-            </span>
-            <div className="leading-relaxed font-medium whitespace-pre-wrap">
-              {msg.text}
-            </div>
-            
-            {msg.links && msg.links.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {msg.links.map((link, i) => (
-                  <a 
-                    key={i} 
-                    href={link.uri} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-primary-400 hover:underline flex items-center gap-1 bg-slate-800/50 px-2 py-1 rounded border border-slate-700/50"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                    {link.title}
-                  </a>
-                ))}
+          <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className={`max-w-[90%] p-3 rounded-sm border ${
+              msg.role === 'user' 
+                ? 'bg-unity-accent/10 border-unity-accent/30 text-unity-text' 
+                : 'bg-unity-dark border-unity-border text-unity-dim'
+            }`}>
+              <div className="flex items-center gap-2 mb-1 opacity-40">
+                <span className="text-[8px] font-bold uppercase tracking-tighter">{msg.role === 'user' ? 'Developer' : 'Architect'}</span>
               </div>
-            )}
+              <div className="text-[12px] leading-relaxed whitespace-pre-wrap select-text">
+                {msg.text}
+              </div>
+              
+              {msg.links && msg.links.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-unity-border flex flex-wrap gap-2">
+                  {msg.links.map((link, i) => (
+                    <a key={i} href={link.uri} target="_blank" rel="noopener" className="text-[9px] text-unity-accent hover:underline flex items-center gap-1">
+                      <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+                      {link.title}
+                    </a>
+                  ))}
+                </div>
+              )}
 
-            {msg.role === 'assistant' && !msg.isError && activeSection && (
-              <button 
-                onClick={() => onApplySuggestion(msg.text, msg.targetSection)}
-                className="mt-4 w-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest bg-primary-600 hover:bg-primary-500 text-white px-4 py-3 rounded-xl transition-all shadow-lg shadow-primary-600/20"
-              >
-                <span>Применить к разделу</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-              </button>
-            )}
+              {msg.role === 'assistant' && activeSection && !msg.isError && (
+                <button 
+                  onClick={() => onApplySuggestion(msg.text)}
+                  className="mt-4 w-full py-1.5 bg-unity-accent text-white text-[10px] font-bold uppercase rounded-sm hover:bg-unity-accent/80 transition-colors"
+                >
+                  Применить к разделу
+                </button>
+              )}
+            </div>
           </div>
         ))}
         
-        {/* Helper quick actions visible even when chat has content */}
-        {history.length > 0 && !isLoading && (
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-900">
-             {contextualActions.slice(0, 3).map((btn, i) => (
-               <button 
-                key={i}
-                onClick={() => handleBrainstorm(btn.action)}
-                className="text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary-400 bg-slate-900 border border-slate-800 px-3 py-2 rounded-xl transition-all"
-               >
-                 {btn.label}
-               </button>
-             ))}
+        {isLoading && (
+          <div className="flex items-center gap-2 text-unity-dim">
+            <div className="flex gap-1">
+               <div className="w-1 h-1 bg-unity-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+               <div className="w-1 h-1 bg-unity-accent rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
+               <div className="w-1 h-1 bg-unity-accent rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
+            </div>
+            <span className="text-[10px] font-mono">Процесс анализа данных...</span>
           </div>
         )}
       </div>
 
-      <div className="p-5 bg-slate-950/80 border-t border-slate-800">
-        <form onSubmit={(e) => { e.preventDefault(); handleBrainstorm(); }} className="relative">
+      <div className="p-3 bg-unity-dark border-t border-unity-border">
+        <div className="relative group">
           <textarea 
             disabled={isLoading}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="О чем подумаем?.."
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 pr-12 text-sm text-slate-300 outline-none focus:border-primary-500/30 transition-all resize-none h-20 disabled:opacity-50"
+            placeholder="Запросить ИИ-анализ..."
+            className="unity-input w-full min-h-[60px] max-h-[150px] pr-10 resize-none font-medium placeholder:opacity-30"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -244,13 +187,13 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ project, activeSection, activ
             }}
           />
           <button 
-            type="submit"
-            disabled={isLoading || !query}
-            className="absolute right-2 bottom-2 p-2 bg-primary-600 text-white rounded-lg hover:bg-primary-500 transition-all disabled:opacity-30"
+            onClick={() => handleBrainstorm()}
+            disabled={isLoading || !query.trim()}
+            className="absolute right-2 bottom-2 p-1.5 bg-unity-accent text-white rounded-sm hover:opacity-80 disabled:opacity-20 transition-all"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" strokeWidth="2.5"/></svg>
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
