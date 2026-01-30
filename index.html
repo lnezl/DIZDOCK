@@ -7,6 +7,9 @@
   <title>Arcane: Архитектор GDD</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    // Заглушка для process.env, чтобы приложение не падало в браузере
+    window.process = { env: { API_KEY: '' } };
+    
     tailwind.config = {
       theme: {
         extend: {

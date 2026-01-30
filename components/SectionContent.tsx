@@ -55,7 +55,6 @@ const SectionContent: React.FC<SectionContentProps> = ({
     onUpdateSubSections((section.subSections || []).filter(s => s.id !== id));
   };
 
-  // Отображаем кнопку подразделов только для сюжетно-ориентированных разделов
   const isLoreSection = section.id === 'story' || section.id === 'characters' || section.id === 'concept' || section.id === 'mechanics';
 
   return (
@@ -102,7 +101,6 @@ const SectionContent: React.FC<SectionContentProps> = ({
             />
           </div>
 
-          {/* Lore / Sub-sections display */}
           {(section.subSections || []).length > 0 && (
             <div className="space-y-4 pt-4 border-t border-slate-800/50">
               <h4 className="text-[10px] font-black text-primary-500 uppercase tracking-widest ml-1">Архив данных раздела</h4>
