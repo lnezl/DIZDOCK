@@ -7,24 +7,24 @@
   <title>Arcane: Unity Game Architect</title>
   
   <script>
-    // Инициализация окружения
+    // Инициализация окружения до загрузки модулей
     window.process = { 
       env: { API_KEY: '' },
       cwd: () => '/',
       browser: true
     };
     
-    // Расширенный перехват ошибок для отладки на GitHub Pages
+    // Перехват ошибок загрузки для отображения пользователю
     window.onerror = function(msg, url, line, col, error) {
-      console.error("Глобальная ошибка: ", msg, "\nФайл: ", url, "\nСтрока: ", line);
+      console.error("Global Error: ", msg, " at ", url, ":", line);
       const root = document.getElementById('root');
       if (root) {
         root.innerHTML = `
-          <div style="padding: 40px; color: #ff5f56; font-family: 'JetBrains Mono', monospace; background: #1a1a1a; height: 100vh;">
-            <h2 style="color: #fff; margin-bottom: 20px; border-bottom: 1px solid #404040; padding-bottom: 10px;">Ошибка инициализации</h2>
-            <p style="color: #ff5f56;">${msg}</p>
-            <p style="font-size: 12px; color: #888; margin-top: 20px;">Попробуйте очистить кэш или проверьте консоль (F12) для подробностей.</p>
-            <div style="margin-top: 30px; font-size: 10px; color: #444;">URL: ${url} | Line: ${line}</div>
+          <div style="padding: 40px; color: #ff5f56; font-family: 'JetBrains Mono', monospace; background: #1a1a1a; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+            <h2 style="color: #fff; margin-bottom: 20px;">Ошибка инициализации</h2>
+            <p style="max-width: 600px; font-size: 14px;">${msg}</p>
+            <p style="font-size: 11px; color: #666; margin-top: 20px;">Проверьте консоль браузера (F12) для подробностей.</p>
+            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 24px; background: #4287f5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">ПЕРЕЗАГРУЗИТЬ</button>
           </div>
         `;
       }
@@ -58,11 +58,6 @@
     ::-webkit-scrollbar-track { background: #1c1c1c; }
     ::-webkit-scrollbar-thumb { background: #3c3c3c; border: 3px solid #1c1c1c; border-radius: 10px; }
     
-    .unity-input { background-color: #1a1a1a; border: 1px solid #242424; border-radius: 3px; color: #dcdcdc; padding: 4px 8px; font-size: 12px; }
-    .unity-button { background: #4a4a4a; border: 1px solid #242424; border-radius: 3px; color: #dcdcdc; padding: 4px 12px; font-size: 11px; cursor: pointer; }
-    .unity-button-primary { background: #4287f5; border-color: #1e3a8a; }
-    .inspector-label { color: #a0a0a0; font-size: 11px; font-weight: 600; }
-
     .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #1c1c1c; }
     .spinner { width: 40px; height: 40px; border: 3px solid rgba(66, 135, 245, 0.1); border-top-color: #4287f5; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
