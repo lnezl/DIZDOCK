@@ -6,16 +6,14 @@
   <title>Arcane: Unity Game Architect</title>
   
   <script>
-    // Инициализация глобальных переменных до загрузки библиотек
     window.process = { env: { API_KEY: '' }, cwd: () => '/', browser: true };
     window.APP_LOADED = false;
 
-    // Глобальный перехватчик ошибок для диагностики
     window.onerror = function(msg, url, line, col, error) {
       const display = document.getElementById('error-display');
       if (display) {
         display.style.display = 'block';
-        display.innerHTML += `<div style="margin-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px;">[Критический сбой]: ${msg} <br><small style="opacity:0.6">${url}:${line}</small></div>`;
+        display.innerHTML += `<div style="margin-top:5px; border-top:1px solid #ffbcba; padding-top:5px;">[${new Date().toLocaleTimeString()}] ${msg} <br><small style="opacity:0.5">${url}:${line}</small></div>`;
       }
       return false;
     };
@@ -48,10 +46,10 @@
     .spinner { width: 32px; height: 32px; border: 2px solid rgba(66, 135, 245, 0.1); border-top-color: #4287f5; border-radius: 50%; animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #error-display { 
-      display: none; position: fixed; top: 20px; left: 20px; right: 20px; 
-      background: #8e1a1a; color: white; padding: 20px; 
-      font-family: 'JetBrains Mono', monospace; font-size: 11px; z-index: 9999; border-radius: 4px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8); border-left: 4px solid #ff5f56;
+      display: none; position: fixed; top: 10px; left: 10px; right: 10px; 
+      background: #8e1a1a; color: white; padding: 15px; 
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; z-index: 9999; border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-left: 4px solid #ff5f56;
     }
   </style>
 
@@ -74,32 +72,31 @@
   <div id="root">
     <div class="loading-screen">
       <div class="spinner"></div>
-      <p id="boot-text" style="margin-top: 20px; color: #4287f5; font-size: 9px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; opacity: 0.8;">Загрузка ядра Arcane...</p>
+      <p style="margin-top: 20px; color: #4287f5; font-size: 9px; font-weight: bold; letter-spacing: 3px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">Система Arcane Инициализирована</p>
     </div>
   </div>
 
   <div id="error-display">
-    <div style="font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #ffbcba;">СИСТЕМНЫЙ СБОЙ ПРИ ЗАГРУЗКЕ</div>
+    <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">СИСТЕМНЫЙ СБОЙ</div>
   </div>
 
-  <!-- Важно: относительный путь ./ помогает GitHub Pages найти файл в папке DIZDOCK -->
-  <script type="text/babel" data-presets="react,typescript" src="./index.tsx"></script>
+  <!-- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: добавлен data-type="module" -->
+  <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
 
   <script>
-    // Проверка загрузки через 8 секунд
     setTimeout(() => {
       if (!window.APP_LOADED) {
         const errDisp = document.getElementById('error-display');
         errDisp.style.display = 'block';
         errDisp.innerHTML += `
-          <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); pt-4">
-            <p style="color: #fff;">Приложение не ответило вовремя.</p>
-            <p style="margin-top: 10px;"><b>Решение:</b> Нажмите <b>Ctrl + F5</b> для принудительного сброса кэша.</p>
-            <button onclick="location.reload(true)" style="margin-top: 15px; background: #fff; color: #8e1a1a; border: none; padding: 8px 16px; border-radius: 2px; font-weight: bold; cursor: pointer; font-size: 10px;">ПЕРЕЗАГРУЗИТЬ СТРАНИЦУ</button>
+          <div style="margin-top: 10px; font-size: 11px;">
+            <p><b>Диагноз:</b> Ошибка загрузки модулей. GitHub Pages может отдавать файлы с задержкой.</p>
+            <p style="margin-top:5px;">Нажмите <b>Ctrl+F5</b> сейчас.</p>
+            <button onclick="location.reload(true)" style="margin-top: 10px; background: white; color: black; border: none; padding: 5px 10px; cursor: pointer; font-weight: bold;">ОБНОВИТЬ КЭШ</button>
           </div>
         `;
       }
-    }, 8000);
+    }, 10000);
   </script>
 </body>
 </html>
