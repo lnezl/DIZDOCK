@@ -7,23 +7,26 @@
   <title>Arcane: Unity Game Architect</title>
   
   <script>
-    // Инициализация процесса до загрузки модулей
+    // Инициализация окружения
     window.process = { 
       env: { API_KEY: '' },
       cwd: () => '/',
       browser: true
     };
     
-    // Перехват ошибок загрузки
+    // Расширенный перехват ошибок для отладки на GitHub Pages
     window.onerror = function(msg, url, line, col, error) {
-      console.error("Global Error: ", msg, " at ", url, ":", line);
+      console.error("Глобальная ошибка: ", msg, "\nФайл: ", url, "\nСтрока: ", line);
       const root = document.getElementById('root');
-      if (root && root.innerHTML.includes('loading-screen')) {
-        root.innerHTML = `<div style="padding: 20px; color: #ff5f56; font-family: monospace;">
-          <h2 style="margin-bottom: 10px;">Ошибка запуска приложения</h2>
-          <p>${msg}</p>
-          <p style="font-size: 10px; color: #888;">Проверьте консоль браузера для деталей.</p>
-        </div>`;
+      if (root) {
+        root.innerHTML = `
+          <div style="padding: 40px; color: #ff5f56; font-family: 'JetBrains Mono', monospace; background: #1a1a1a; height: 100vh;">
+            <h2 style="color: #fff; margin-bottom: 20px; border-bottom: 1px solid #404040; padding-bottom: 10px;">Ошибка инициализации</h2>
+            <p style="color: #ff5f56;">${msg}</p>
+            <p style="font-size: 12px; color: #888; margin-top: 20px;">Попробуйте очистить кэш или проверьте консоль (F12) для подробностей.</p>
+            <div style="margin-top: 30px; font-size: 10px; color: #444;">URL: ${url} | Line: ${line}</div>
+          </div>
+        `;
       }
     };
   </script>
@@ -37,16 +40,9 @@
         extend: {
           colors: {
             unity: {
-              dark: '#1c1c1c',     // Main background
-              panel: '#2d2d2d',    // Panels and sidebars
-              header: '#3c3c3c',   // Headers and tab bars
-              input: '#1a1a1a',    // Input fields
-              border: '#242424',   // Separators
-              stroke: '#404040',   // Light borders
-              accent: '#4287f5',   // Unity blue
-              hover: '#454545',    // Item hover
-              text: '#dcdcdc',     // Primary text
-              dim: '#a0a0a0'       // Secondary text
+              dark: '#1c1c1c', panel: '#2d2d2d', header: '#3c3c3c', 
+              input: '#1a1a1a', border: '#242424', stroke: '#404040', 
+              accent: '#4287f5', hover: '#454545', text: '#dcdcdc', dim: '#a0a0a0'
             }
           }
         }
@@ -58,73 +54,18 @@
   
   <style>
     body { font-family: 'Inter', sans-serif; background-color: #1c1c1c; color: #dcdcdc; margin: 0; overflow: hidden; }
-    
-    /* Имитация скроллбаров Unity */
     ::-webkit-scrollbar { width: 12px; height: 12px; }
     ::-webkit-scrollbar-track { background: #1c1c1c; }
     ::-webkit-scrollbar-thumb { background: #3c3c3c; border: 3px solid #1c1c1c; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #4c4c4c; }
-
-    .unity-input {
-      background-color: #1a1a1a;
-      border: 1px solid #242424;
-      border-radius: 3px;
-      color: #dcdcdc;
-      padding: 4px 8px;
-      font-size: 12px;
-      transition: border-color 0.2s;
-    }
-    .unity-input:focus { border-color: #4287f5; outline: none; box-shadow: 0 0 0 1px #4287f5; }
     
-    .unity-button {
-      background: #4a4a4a;
-      border: 1px solid #242424;
-      border-radius: 3px;
-      color: #dcdcdc;
-      padding: 4px 12px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.1s;
-    }
-    .unity-button:hover { background: #5a5a5a; }
-    .unity-button:active { background: #3a3a3a; transform: translateY(1px); }
+    .unity-input { background-color: #1a1a1a; border: 1px solid #242424; border-radius: 3px; color: #dcdcdc; padding: 4px 8px; font-size: 12px; }
+    .unity-button { background: #4a4a4a; border: 1px solid #242424; border-radius: 3px; color: #dcdcdc; padding: 4px 12px; font-size: 11px; cursor: pointer; }
     .unity-button-primary { background: #4287f5; border-color: #1e3a8a; }
-    .unity-button-primary:hover { background: #5a9fff; }
+    .inspector-label { color: #a0a0a0; font-size: 11px; font-weight: 600; }
 
-    .inspector-label {
-      color: #a0a0a0;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: capitalize;
-    }
-
-    .loading-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #1c1c1c;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(66, 135, 245, 0.2);
-      border-top-color: #4287f5;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .code-comment { color: #6a9955; }
-    .code-keyword { color: #569cd6; }
-    .code-class { color: #4ec9b0; }
-    .code-attr { color: #dcdcaa; }
+    .loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #1c1c1c; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(66, 135, 245, 0.1); border-top-color: #4287f5; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 
 <script type="importmap">
@@ -146,10 +87,9 @@
   <div id="root">
     <div class="loading-screen">
       <div class="spinner"></div>
-      <p style="margin-top: 15px; color: #888; font-size: 10px; letter-spacing: 1px; font-family: monospace;">LAUNCHING UNITY WORKSPACE...</p>
+      <p style="margin-top: 15px; color: #4287f5; font-size: 10px; font-weight: bold; letter-spacing: 2px; font-family: 'JetBrains Mono', monospace;">CONNECTING TO ENGINE...</p>
     </div>
   </div>
-  <!-- Добавлены data-presets для корректной компиляции TSX в браузере -->
-  <script type="text/babel" data-presets="react,typescript" data-type="module" src="index.tsx"></script>
+  <script type="text/babel" data-presets="react,typescript" data-type="module" src="./index.tsx"></script>
 </body>
 </html>
