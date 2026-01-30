@@ -1,75 +1,281 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI } from "@google/genai";
 
-// --- TYPES ---
+// --- ТИПЫ ДАННЫХ ---
 interface SubSection { id: string; title: string; content: string; isExpanded: boolean; }
-interface Section { id: string; title: string; content: string; notes?: string; attachments?: string[]; suggestions?: string[]; subSections?: SubSection[]; }
-type TaskPriority = 'urgent' | 'normal' | 'low';
-interface ChecklistItem { id: string; text: string; completed: boolean; }
-interface Task { id: string; title: string; description: string; status: string; priority: TaskPriority; progress: number; checklist: ChecklistItem[]; }
-interface BoardColumn { id: string; title: string; color: string; }
-interface GameProject { id: string; title: string; genre: string; lastModified: number; timeSpent: number; hourlyRate: number; sections: Section[]; tasks: Task[]; columns: BoardColumn[]; }
+interface Section { id: string; title: string; content: string; suggestions?: string[]; subSections?: SubSection[]; attachments?: string[]; notes?: string; }
+interface Task { id: string; title: string; status: string; priority: 'urgent'|'normal'|'low'; progress: number; checklist: {id:string; text:string; completed:boolean}[]; }
+interface PlotNode { id: string; title: string; content: string; position: {x:number; y:number}; choices: {id:string; text:string; targetNodeId:string|null}[]; }
+interface StoryFlow { id: string; name: string; plotNodes: PlotNode[]; }
+interface GameProject { id: string; title: string; genre: string; lastModified: number; sections: Section[]; tasks: Task[]; columns: {id:string; title:string; color:string}[]; storyFlows: StoryFlow[]; }
 
-// --- CONSTANTS ---
-const SYSTEM_INSTRUCTION = `Вы — ведущий технический геймдизайнер и эксперт по Unity 3D (C#). Помогайте проектировать игры для Unity.`;
-const DEFAULT_GDD_SECTIONS: Section[] = [
-  { id: 'concept', title: 'Концепция проекта', content: 'Основное видение игры.', suggestions: ['Платформа', 'Unity версия'] },
-  { id: 'mechanics', title: 'Игровые системы', content: 'Механики взаимодействия.', suggestions: ['Controller', 'AI'] }
+// --- КОНСТАНТЫ ---
+const SYSTEM_INSTRUCTION = `Вы — эксперт по Unity (C#) и геймдизайну. Помогайте пользователю проектировать игры.`;
+const DEFAULT_SECTIONS: Section[] = [
+  { id: 'concept', title: 'Концепция', content: 'Основная идея игры.', suggestions: ['Платформа', 'Цель'] },
+  { id: 'mechanics', title: 'Механики', content: 'Описание игрового процесса.', suggestions: ['Управление', 'Боевка'] }
+];
+const DEFAULT_COLUMNS = [
+  { id: 'todo', title: 'План', color: 'bg-sky-500' },
+  { id: 'doing', title: 'В работе', color: 'bg-unity-accent' },
+  { id: 'done', title: 'Готово', color: 'bg-emerald-500' }
 ];
 
-// --- SERVICES ---
-const getGeminiResponse = async (prompt: string, context: string = "") => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// --- ИИ СЕРВИС ---
+const askAI = async (prompt: string, context: string = "") => {
+  // Use the API key directly from process.env.API_KEY as per guidelines.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   try {
-    const response = await ai.models.generateContent({
+    const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: context ? `Контекст: ${context}\n\nЗадача: ${prompt}` : prompt,
       config: { systemInstruction: SYSTEM_INSTRUCTION, temperature: 0.7 }
     });
-    return response.text || "Нет ответа";
-  } catch (e) { return "Ошибка ИИ"; }
+    // Use .text property directly to get the response string.
+    return res.text || "Нет ответа";
+  } catch (e) { return "Ошибка API"; }
 };
 
-// --- COMPONENTS ---
+// --- КОМПОНЕНТЫ ---
 
-const Dashboard = ({ projects, onCreate, onDelete, onSelect }: any) => {
-  const [showCreate, setShowCreate] = useState(false);
-  const [title, setTitle] = useState('');
-  const [genre, setGenre] = useState('RPG');
+// 1. STORY FLOW (Нодовый редактор)
+const StoryFlowEditor = ({ project, flowId, onUpdate }: any) => {
+  const flow = project.storyFlows.find((f:any) => f.id === flowId);
+  const [nodes, setNodes] = useState<PlotNode[]>(flow?.plotNodes || []);
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [offset, setOffset] = useState({x:0, y:0});
+
+  const addNode = () => {
+    const newNode: PlotNode = { id: crypto.randomUUID(), title: 'Новая сцена', content: '', position: {x: 100, y: 100}, choices: [] };
+    const updated = [...nodes, newNode];
+    setNodes(updated);
+    save(updated);
+  };
+
+  const save = (newNodes: PlotNode[]) => {
+    onUpdate({ ...project, storyFlows: project.storyFlows.map((f:any) => f.id === flowId ? {...f, plotNodes: newNodes} : f)});
+  };
 
   return (
-    <div className="flex h-screen bg-unity-dark text-unity-text p-8">
-      <div className="max-w-4xl mx-auto w-full">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-3xl font-bold">Arcane Hub</h1>
-          <button onClick={() => setShowCreate(true)} className="unity-button-primary px-6 py-2 uppercase font-bold text-xs tracking-widest">Новый Проект</button>
-        </div>
-        
-        <div className="grid gap-4">
-          {projects.map((p: any) => (
-            <div key={p.id} onClick={() => onSelect(p.id)} className="bg-unity-panel border border-unity-stroke p-6 rounded cursor-pointer hover:border-unity-accent transition-all flex justify-between items-center group">
-              <div>
-                <h3 className="text-xl font-bold">{p.title}</h3>
-                <p className="text-unity-dim text-xs uppercase">{p.genre} • {new Date(p.lastModified).toLocaleDateString()}</p>
-              </div>
-              <button onClick={(e) => { e.stopPropagation(); onDelete(p.id); }} className="opacity-0 group-hover:opacity-100 text-rose-500 hover:scale-110 transition-all">Удалить</button>
+    <div className="h-full bg-slate-950 rounded-lg relative overflow-hidden flex flex-col">
+      <div className="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-unity-accent">Story Canvas: {flow?.name}</h3>
+        <button onClick={addNode} className="unity-button-primary px-4 py-1 text-[10px] font-bold">ADD NODE</button>
+      </div>
+      <div className="flex-1 relative overflow-auto bg-[radial-gradient(#ffffff10_1px,transparent_1px)] [background-size:20px_20px]">
+        {nodes.map(node => (
+          <div 
+            key={node.id}
+            style={{ left: node.position.x, top: node.position.y }}
+            className="absolute w-48 bg-unity-panel border border-unity-stroke p-3 rounded shadow-xl cursor-move"
+            onMouseDown={(e) => { setDragging(node.id); setOffset({x: e.clientX - node.position.x, y: e.clientY - node.position.y}); }}
+          >
+            <input 
+              className="bg-transparent text-[10px] font-bold text-white w-full outline-none mb-2" 
+              value={node.title} 
+              onChange={e => {
+                const updated = nodes.map(n => n.id === node.id ? {...n, title: e.target.value} : n);
+                setNodes(updated); save(updated);
+              }}
+            />
+            <textarea 
+              className="w-full bg-unity-dark text-[9px] p-1 h-12 outline-none rounded border border-unity-stroke"
+              value={node.content}
+              onChange={e => {
+                const updated = nodes.map(n => n.id === node.id ? {...n, content: e.target.value} : n);
+                setNodes(updated); save(updated);
+              }}
+              placeholder="Событие..."
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// 2. KANBAN (Доска задач)
+const KanbanBoard = ({ project, onUpdate }: any) => {
+  const addTask = (colId: string) => {
+    const title = prompt('Название задачи:');
+    if (!title) return;
+    onUpdate({ ...project, tasks: [...project.tasks, { id: crypto.randomUUID(), title, status: colId, priority: 'normal', progress: 0, checklist: [] }]});
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+       <div className="flex gap-4 h-full overflow-x-auto p-4">
+          {project.columns.map((col: any) => (
+            <div key={col.id} className="w-72 bg-unity-panel border border-unity-stroke flex flex-col rounded p-2">
+               <div className="flex justify-between items-center mb-4 px-2">
+                 <span className="text-[10px] font-bold uppercase tracking-widest text-unity-dim">{col.title}</span>
+                 <button onClick={() => addTask(col.id)} className="text-unity-accent text-lg">+</button>
+               </div>
+               <div className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
+                  {project.tasks.filter((t:any) => t.status === col.id).map((task:any) => (
+                    <div key={task.id} className="bg-unity-dark p-3 border border-unity-stroke rounded hover:border-unity-accent transition-colors">
+                       <p className="text-xs font-medium">{task.title}</p>
+                    </div>
+                  ))}
+               </div>
             </div>
           ))}
-          {projects.length === 0 && <p className="text-center text-unity-dim py-20 border-2 border-dashed border-unity-stroke rounded">Нет активных проектов</p>}
-        </div>
+       </div>
+    </div>
+  );
+};
 
-        {showCreate && (
+// 3. UNITY TOOLKIT (Генератор кода)
+const UnityToolkit = ({ project }: any) => {
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const generate = async () => {
+    setLoading(true);
+    const result = await askAI("Сгенерируй C# класс ScriptableObject для системы инвентаря на Unity. Только код.");
+    setCode(result);
+    setLoading(false);
+  };
+
+  return (
+    <div className="h-full flex flex-col p-6">
+       <button onClick={generate} disabled={loading} className="unity-button-primary py-2 px-6 self-start text-xs font-bold uppercase mb-4">
+         {loading ? "Генерация..." : "Генерация C# Архитектуры"}
+       </button>
+       <div className="flex-1 bg-black rounded p-4 font-mono text-xs overflow-auto text-emerald-400 border border-emerald-900/30">
+          <pre>{code || "// Выберите раздел для генерации кода..."}</pre>
+       </div>
+    </div>
+  );
+};
+
+// 4. MAIN EDITOR
+const MainEditor = ({ project, onUpdate, onExit }: any) => {
+  const [view, setView] = useState('concept');
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiHistory, setAiHistory] = useState<any[]>([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  const activeSection = project.sections.find((s:any) => s.id === view);
+
+  const runAI = async () => {
+    if (!aiQuery.trim()) return;
+    setLoadingAI(true);
+    const res = await askAI(aiQuery, `Проект: ${project.title}. Раздел: ${view}`);
+    setAiHistory([...aiHistory, { q: aiQuery, a: res }]);
+    setAiQuery('');
+    setLoadingAI(false);
+  };
+
+  return (
+    <div className="flex h-screen bg-unity-dark overflow-hidden">
+      {/* Sidebar */}
+      <aside className="w-64 bg-unity-panel border-r border-unity-border flex flex-col shrink-0">
+        <div className="p-4 bg-unity-header border-b border-unity-border flex justify-between items-center">
+          <span className="text-[10px] font-bold text-unity-dim uppercase">Hierarchy</span>
+          <button onClick={onExit} className="text-rose-500 text-[10px] font-bold">HUB</button>
+        </div>
+        <div className="flex-1 p-2 space-y-1 overflow-y-auto no-scrollbar">
+           <div className="text-[9px] font-bold text-unity-dim p-2 uppercase">Assets</div>
+           <button onClick={() => setView('kanban')} className={`w-full text-left px-3 py-1.5 rounded text-xs ${view === 'kanban' ? 'bg-unity-accent text-white' : 'text-unity-dim hover:bg-unity-hover'}`}>Board: Tasks</button>
+           <button onClick={() => setView('story')} className={`w-full text-left px-3 py-1.5 rounded text-xs ${view === 'story' ? 'bg-unity-accent text-white' : 'text-unity-dim hover:bg-unity-hover'}`}>Canvas: Story</button>
+           <button onClick={() => setView('toolkit')} className={`w-full text-left px-3 py-1.5 rounded text-xs ${view === 'toolkit' ? 'bg-unity-accent text-white' : 'text-unity-dim hover:bg-unity-hover'}`}>Tool: C# Generator</button>
+           <div className="h-4" />
+           <div className="text-[9px] font-bold text-unity-dim p-2 uppercase">GDD Sections</div>
+           {project.sections.map((s:any) => (
+             <button key={s.id} onClick={() => setView(s.id)} className={`w-full text-left px-3 py-1.5 rounded text-xs ${view === s.id ? 'bg-unity-accent text-white' : 'text-unity-dim hover:bg-unity-hover'}`}>{s.title}</button>
+           ))}
+        </div>
+      </aside>
+
+      {/* Main Area */}
+      <main className="flex-1 flex flex-col min-w-0">
+        <header className="h-10 bg-unity-header border-b border-unity-border flex items-center px-4 justify-between">
+           <span className="text-[11px] font-bold text-white uppercase tracking-widest">{view.toUpperCase()}</span>
+           <div className="flex gap-4">
+              <span className="text-[10px] text-unity-dim font-mono">v2.8.5-STABLE</span>
+           </div>
+        </header>
+        <div className="flex-1 p-6 overflow-hidden">
+           {view === 'kanban' ? <KanbanBoard project={project} onUpdate={onUpdate} /> :
+            view === 'story' ? <StoryFlowEditor project={project} flowId={project.storyFlows[0].id} onUpdate={onUpdate} /> :
+            view === 'toolkit' ? <UnityToolkit project={project} /> :
+            activeSection ? (
+              <div className="h-full bg-unity-panel border border-unity-stroke p-8 rounded-sm shadow-inner flex flex-col">
+                 <h2 className="text-xl font-bold mb-4 border-b border-unity-stroke pb-2">{activeSection.title}</h2>
+                 <textarea 
+                   className="flex-1 bg-transparent border-none outline-none resize-none text-unity-text leading-relaxed font-medium"
+                   value={activeSection.content}
+                   onChange={e => onUpdate({...project, sections: project.sections.map((s:any) => s.id === view ? {...s, content: e.target.value} : s)})}
+                   placeholder="Напишите спецификацию..."
+                 />
+              </div>
+            ) : null}
+        </div>
+      </main>
+
+      {/* Right AI Sidebar */}
+      <aside className="w-80 bg-unity-panel border-l border-unity-border flex flex-col shrink-0">
+         <div className="p-3 bg-unity-header border-b border-unity-border">
+            <span className="text-[10px] font-bold text-unity-dim uppercase">Arcane AI Assistant</span>
+         </div>
+         <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+            {aiHistory.map((h, i) => (
+              <div key={i} className="space-y-2">
+                 <div className="bg-unity-accent/10 border border-unity-accent/20 p-2 rounded text-[11px] text-unity-dim">{h.q}</div>
+                 <div className="bg-unity-dark p-3 border border-unity-stroke rounded text-[11px] leading-relaxed select-text">{h.a}</div>
+              </div>
+            ))}
+            {loadingAI && <div className="text-[10px] animate-pulse text-unity-accent">ИИ анализирует...</div>}
+         </div>
+         <div className="p-4 border-t border-unity-border bg-unity-dark">
+            <textarea 
+              className="unity-input w-full h-20 text-[11px] mb-2 resize-none"
+              placeholder="Спроси о геймдизайне или коде..."
+              value={aiQuery}
+              onChange={e => setAiQuery(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), runAI())}
+            />
+            <button onClick={runAI} className="unity-button-primary w-full py-2 text-[10px] font-bold uppercase">АНАЛИЗ</button>
+         </div>
+      </aside>
+    </div>
+  );
+};
+
+// 5. DASHBOARD
+const Dashboard = ({ projects, onCreate, onDelete, onSelect }: any) => {
+  const [show, setShow] = useState(false);
+  const [t, setT] = useState('');
+  return (
+    <div className="flex h-screen bg-unity-dark p-12">
+      <div className="max-w-4xl mx-auto w-full">
+        <div className="flex justify-between items-center mb-12">
+          <h1 className="text-4xl font-black text-white tracking-tighter">Arcane <span className="text-unity-accent">Unity Hub</span></h1>
+          <button onClick={() => setShow(true)} className="unity-button-primary px-8 py-2 font-bold text-xs uppercase tracking-widest">Новый проект</button>
+        </div>
+        <div className="grid gap-4">
+          {projects.map((p: any) => (
+            <div key={p.id} onClick={() => onSelect(p.id)} className="bg-unity-panel border border-unity-stroke p-6 rounded cursor-pointer hover:border-unity-accent flex justify-between items-center group">
+              <div>
+                <h3 className="text-xl font-bold">{p.title}</h3>
+                <p className="text-[10px] text-unity-dim uppercase font-bold mt-1">{p.genre} • {new Date(p.lastModified).toLocaleDateString()}</p>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(p.id); }} className="opacity-0 group-hover:opacity-100 text-rose-500 text-xs font-bold uppercase">Удалить</button>
+            </div>
+          ))}
+          {projects.length === 0 && <div className="text-center py-20 border-2 border-dashed border-unity-stroke rounded text-unity-dim">У вас пока нет активных разработок.</div>}
+        </div>
+        {show && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100]">
-            <div className="bg-unity-panel border border-unity-stroke p-8 rounded-sm w-full max-w-md">
-              <h2 className="text-lg font-bold mb-6 uppercase tracking-widest">Создание игры</h2>
-              <div className="space-y-4">
-                <input className="unity-input w-full py-2" placeholder="Название" value={title} onChange={e => setTitle(e.target.value)} />
-                <input className="unity-input w-full py-2" placeholder="Жанр" value={genre} onChange={e => setGenre(e.target.value)} />
-                <div className="flex gap-2 pt-4">
-                  <button onClick={() => setShowCreate(false)} className="unity-button flex-1">Отмена</button>
-                  <button onClick={() => { onCreate(title, genre); setShowCreate(false); }} className="unity-button-primary flex-1">Создать</button>
-                </div>
+            <div className="bg-unity-panel border border-unity-stroke p-8 rounded w-full max-w-md">
+              <h2 className="text-lg font-bold mb-6 uppercase tracking-widest text-unity-accent">Инициализация GDD</h2>
+              <input className="unity-input w-full py-3 mb-4" placeholder="Название игры..." value={t} onChange={e => setT(e.target.value)} autoFocus />
+              <div className="flex gap-2">
+                 <button onClick={() => setShow(false)} className="unity-input flex-1">Отмена</button>
+                 <button onClick={() => { onCreate(t, 'RPG'); setShow(false); setT(''); }} className="unity-button-primary flex-1 font-bold">СОЗДАТЬ</button>
               </div>
             </div>
           </div>
@@ -79,111 +285,35 @@ const Dashboard = ({ projects, onCreate, onDelete, onSelect }: any) => {
   );
 };
 
-const Editor = ({ project, onUpdate, onExit }: any) => {
-  const [activeSectionId, setActiveSectionId] = useState(project.sections[0]?.id);
-  const activeSection = project.sections.find((s: any) => s.id === activeSectionId);
-
-  const updateSection = (content: string) => {
-    onUpdate({
-      ...project,
-      sections: project.sections.map((s: any) => s.id === activeSectionId ? { ...s, content } : s)
-    });
-  };
-
-  return (
-    <div className="flex h-screen bg-unity-dark overflow-hidden">
-      <aside className="w-64 bg-unity-panel border-r border-unity-border flex flex-col">
-        <div className="p-4 border-b border-unity-border bg-unity-header flex justify-between items-center">
-           <span className="text-[10px] font-bold text-unity-dim uppercase">Иерархия</span>
-           <button onClick={onExit} className="text-[10px] text-rose-500 font-bold hover:underline">ВЫХОД</button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {project.sections.map((s: any) => (
-            <button 
-              key={s.id} 
-              onClick={() => setActiveSectionId(s.id)}
-              className={`w-full text-left px-3 py-1.5 rounded text-xs transition-colors ${activeSectionId === s.id ? 'bg-unity-accent text-white' : 'text-unity-dim hover:bg-unity-hover'}`}
-            >
-              {s.title}
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col bg-unity-dark">
-        <header className="h-10 bg-unity-header border-b border-unity-border flex items-center px-4">
-          <span className="text-[11px] font-bold text-white uppercase tracking-widest">{activeSection?.title}</span>
-        </header>
-        <div className="flex-1 p-8 overflow-y-auto">
-          <div className="max-w-4xl mx-auto bg-unity-panel border border-unity-stroke p-8 rounded-sm shadow-2xl min-h-full">
-            <textarea 
-              className="w-full h-[60vh] bg-transparent border-none outline-none resize-none text-unity-text leading-relaxed font-medium"
-              value={activeSection?.content}
-              onChange={e => updateSection(e.target.value)}
-              placeholder="Начните проектирование здесь..."
-            />
-          </div>
-        </div>
-      </main>
-
-      <aside className="w-[350px] bg-unity-panel border-l border-unity-border p-4 flex flex-col">
-        <div className="text-[10px] font-bold text-unity-dim uppercase mb-4 tracking-widest">Инспектор ИИ</div>
-        <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar">
-           <div className="p-3 bg-unity-dark border border-unity-stroke rounded text-xs text-unity-dim leading-relaxed">
-             Я помогу тебе проработать этот раздел. Напиши, что именно тебя интересует в дизайне {project.title}.
-           </div>
-        </div>
-        <div className="mt-4">
-          <textarea className="unity-input w-full h-20 text-xs" placeholder="Спросить ИИ..." />
-          <button className="unity-button-primary w-full mt-2 py-2 text-[10px] font-bold uppercase">Анализ</button>
-        </div>
-      </aside>
-    </div>
-  );
-};
-
-// --- MAIN APP COMPONENT ---
-
+// --- CORE APP ---
 const App = () => {
   const [projects, setProjects] = useState<GameProject[]>(() => {
-    const saved = localStorage.getItem('arcane_v1');
+    const saved = localStorage.getItem('arcane_v2');
     return saved ? JSON.parse(saved) : [];
   });
-  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [cur, setCur] = useState<string | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem('arcane_v1', JSON.stringify(projects));
-  }, [projects]);
+  useEffect(() => { localStorage.setItem('arcane_v2', JSON.stringify(projects)); }, [projects]);
 
-  const createProject = (title: string, genre: string) => {
-    const newProject: GameProject = {
-      id: crypto.randomUUID(), title, genre, lastModified: Date.now(), timeSpent: 0, hourlyRate: 20,
-      sections: JSON.parse(JSON.stringify(DEFAULT_GDD_SECTIONS)),
-      tasks: [], columns: []
+  const create = (title: string, genre: string) => {
+    const p: GameProject = {
+      id: crypto.randomUUID(), title, genre, lastModified: Date.now(),
+      sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+      tasks: [], columns: JSON.parse(JSON.stringify(DEFAULT_COLUMNS)),
+      storyFlows: [{ id: crypto.randomUUID(), name: 'Основной квест', plotNodes: [] }]
     };
-    setProjects([newProject, ...projects]);
-    setCurrentId(newProject.id);
+    setProjects([p, ...projects]);
+    setCur(p.id);
   };
 
-  const updateProject = (updated: GameProject) => {
-    setProjects(projects.map(p => p.id === updated.id ? { ...updated, lastModified: Date.now() } : p));
-  };
+  const current = projects.find(p => p.id === cur);
 
-  const deleteProject = (id: string) => {
-    setProjects(projects.filter(p => p.id !== id));
-  };
+  if (current) return <MainEditor project={current} onExit={() => setCur(null)} onUpdate={(p:any) => setProjects(projects.map(item => item.id === p.id ? {...p, lastModified: Date.now()} : item))} />;
 
-  const currentProject = projects.find(p => p.id === currentId);
-
-  if (currentProject) {
-    return <Editor project={currentProject} onUpdate={updateProject} onExit={() => setCurrentId(null)} />;
-  }
-
-  return <Dashboard projects={projects} onCreate={createProject} onDelete={deleteProject} onSelect={setCurrentId} />;
+  return <Dashboard projects={projects} onCreate={create} onDelete={(id:string) => setProjects(projects.filter(p => p.id !== id))} onSelect={setCur} />;
 };
 
-// --- BOOTSTRAP ---
 const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(<App />);
+// Using type assertion to any to fix TS error: Property 'APP_LOADED' does not exist on type 'Window'.
 (window as any).APP_LOADED = true;
-console.log("Arcane Hub: Launched.");
