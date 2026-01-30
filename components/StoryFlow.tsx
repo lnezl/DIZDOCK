@@ -70,7 +70,6 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
     setIsExporting(true);
     
     try {
-      // Find bounds of all nodes to create a tight crop
       if (localNodes.length === 0) {
         alert("Нет нод для экспорта");
         setIsExporting(false);
@@ -94,7 +93,7 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
           transformOrigin: 'top left',
           left: `-${minX}px`,
           top: `-${minY}px`,
-          backgroundColor: '#020617' // Match app background
+          backgroundColor: '#020617'
         }
       });
       
@@ -116,13 +115,11 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
   const NODE_HEIGHT = 140;
 
   const addNode = (e: React.MouseEvent) => {
-    // Only create node if double clicking the background, not nodes or elements
     if ((e.target as HTMLElement).closest('.node-card')) return;
 
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     
-    // Adjust for container scroll and zoom
     const scrollLeft = containerRef.current?.scrollLeft || 0;
     const scrollTop = containerRef.current?.scrollTop || 0;
     
@@ -141,7 +138,7 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
     
     const updatedNodes = [...localNodes, newNode];
     setLocalNodes(updatedNodes);
-    setInlineEditingId(newNode.id); // Immediately focus title
+    setInlineEditingId(newNode.id);
     
     onUpdate({
       ...project,
@@ -222,9 +219,10 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
   };
 
   const handleMouseUp = () => {
-    if (connecting && hoveredNodeId) {
+    if (connecting) {
       const sourceNode = localNodes.find(n => n.id === connecting.sourceNodeId);
       if (sourceNode) {
+        // Условие разрыва: если hoveredNodeId === null, значит отпустили в пустоту
         const updatedChoices = sourceNode.choices.map(c => 
           c.id === connecting.choiceId ? { ...c, targetNodeId: hoveredNodeId } : c
         );
@@ -251,22 +249,38 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
         const startY = node.position.y + 65 + (choiceIndex * 24); 
         const endX = target.position.x;
         const endY = target.position.y + NODE_HEIGHT / 2;
+        
         const curvature = Math.abs(endX - startX) * 0.4 + 10;
         const cp1x = startX + curvature;
         const cp1y = startY;
         const cp2x = endX - curvature;
         const cp2y = endY;
+        
+        // Find mid point for the delete button
         const t = 0.5;
         const midX = Math.pow(1-t, 3)*startX + 3*Math.pow(1-t, 2)*t*cp1x + 3*(1-t)*Math.pow(t, 2)*cp2x + Math.pow(t, 3)*endX;
         const midY = Math.pow(1-t, 3)*startY + 3*Math.pow(1-t, 2)*t*cp1y + 3*(1-t)*Math.pow(t, 2)*cp2y + Math.pow(t, 3)*endY;
 
         return (
-          <g key={`${node.id}-${choice.id}`} className="group/link">
-            <path d={`M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`} fill="none" stroke="transparent" strokeWidth="20" className="cursor-pointer" />
-            <path d={`M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`} fill="none" stroke="rgba(99, 102, 241, 0.4)" strokeWidth="2.5" markerEnd="url(#arrowhead)" className="group-hover/link:stroke-indigo-400 group-hover/link:stroke-[4px] transition-all" />
-            <g transform={`translate(${midX - 10}, ${midY - 10})`} className="opacity-0 group-hover/link:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.stopPropagation(); deleteConnection(node.id, choice.id); }}>
-              <circle r="10" cx="10" cy="10" className="fill-slate-900 stroke-rose-500 stroke-2" />
-              <path d="M 7 7 L 13 13 M 13 7 L 7 13" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          <g key={`${node.id}-${choice.id}`} className="group/link pointer-events-auto">
+            <path 
+              d={`M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`} 
+              fill="none" 
+              stroke="transparent" 
+              strokeWidth="24" 
+              className="cursor-pointer" 
+            />
+            <path 
+              d={`M ${startX} ${startY} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${endX} ${endY}`} 
+              fill="none" 
+              stroke="rgba(99, 102, 241, 0.4)" 
+              strokeWidth="2.5" 
+              markerEnd="url(#arrowhead)" 
+              className="group-hover/link:stroke-indigo-400 group-hover/link:stroke-[5px] transition-all" 
+            />
+            <g transform={`translate(${midX - 12}, ${midY - 12})`} className="opacity-0 group-hover/link:opacity-100 transition-opacity cursor-pointer" onClick={(e) => { e.stopPropagation(); deleteConnection(node.id, choice.id); }}>
+              <circle r="12" cx="12" cy="12" className="fill-slate-900 stroke-rose-500 stroke-2" />
+              <path d="M 8 8 L 16 16 M 16 8 L 8 16" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
             </g>
           </g>
         );
@@ -280,7 +294,7 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
         <div className="flex items-center gap-6">
           <div>
             <h2 className="text-3xl font-black text-white tracking-tight">{currentFlow.name}</h2>
-            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Двойной клик по полю — новая сцена • Перетаскивай порты для связей</p>
+            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Тяни порт в пустоту или ПКМ для удаления связи</p>
           </div>
           
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 bg-slate-900/40 ${isSyncing ? 'border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'border-slate-800 text-slate-600'}`}>
@@ -416,10 +430,16 @@ const StoryFlow: React.FC<StoryFlowProps> = ({ project, onUpdate, flowId }) => {
                       <span className="text-[8px] text-slate-400 truncate max-w-[140px] group-hover/choice:text-slate-200 transition-colors">{choice.text}</span>
                       <div 
                         onMouseDown={(e) => handleStartConnect(e, node, choice.id)} 
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          deleteConnection(node.id, choice.id);
+                          syncWithProject();
+                        }}
                         className={`port w-3.5 h-3.5 rounded-full border-2 transition-all cursor-crosshair ${
                           choice.targetNodeId ? 'bg-indigo-500 border-indigo-400 shadow-[0_0_5px_rgba(99,102,241,0.5)]' : 
                           'bg-slate-800 border-slate-700 hover:border-amber-500 hover:bg-amber-500/20'
                         }`} 
+                        title="ЛКМ — тянуть связь, ПКМ — убрать связь"
                       />
                    </div>
                  ))}

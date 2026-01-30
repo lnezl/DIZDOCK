@@ -1,4 +1,11 @@
 
+export interface SubSection {
+  id: string;
+  title: string;
+  content: string;
+  isExpanded: boolean;
+}
+
 export interface Section {
   id: string;
   title: string;
@@ -7,9 +14,9 @@ export interface Section {
   attachments?: string[];
   aiSuggested?: boolean;
   suggestions?: string[];
+  subSections?: SubSection[];
 }
 
-export type TaskStatus = 'backlog' | 'todo' | 'doing' | 'done';
 export type TaskPriority = 'urgent' | 'normal' | 'low';
 
 export interface PlotChoice {
@@ -50,14 +57,20 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  status: TaskStatus;
+  status: string; // ID колонки
   priority: TaskPriority;
   progress: number;
   checklist: ChecklistItem[];
   comments: TaskComment[];
   attachments?: string[];
-  reminder?: number; // Timestamp for the reminder
-  reminderSent?: boolean; // Flag to prevent multiple alerts
+  reminder?: number;
+  reminderSent?: boolean;
+}
+
+export interface BoardColumn {
+  id: string;
+  title: string;
+  color: string;
 }
 
 export interface GameProject {
@@ -65,10 +78,11 @@ export interface GameProject {
   title: string;
   genre: string;
   lastModified: number;
-  timeSpent: number; // в миллисекундах
-  hourlyRate: number; // стоимость часа
+  timeSpent: number;
+  hourlyRate: number;
   sections: Section[];
   tasks: Task[];
+  columns: BoardColumn[];
   storyFlows: StoryFlowData[];
 }
 

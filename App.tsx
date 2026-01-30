@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { GameProject, ViewState, StoryFlowData } from './types';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { GameProject, ViewState, StoryFlowData, BoardColumn } from './types';
 import { DEFAULT_GDD_SECTIONS } from './constants';
 import Dashboard from './components/Dashboard';
 import Editor from './components/Editor';
@@ -10,12 +10,22 @@ const STORAGE_KEY = 'arcane_projects_v7';
 const LAST_PROJECT_KEY = 'arcane_last_project_id';
 const AUTH_KEY = 'arcane_auth_credentials';
 
+const DEFAULT_COLUMNS: BoardColumn[] = [
+  { id: 'backlog', title: 'Бэклог', color: 'bg-slate-700' },
+  { id: 'todo', title: 'В плане', color: 'bg-sky-500' },
+  { id: 'doing', title: 'В работе', color: 'bg-primary-500' },
+  { id: 'done', title: 'Готово', color: 'bg-emerald-500' }
+];
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [credentials, setCredentials] = useState(() => {
     const saved = localStorage.getItem(AUTH_KEY);
     return saved ? JSON.parse(saved) : { login: 'nez', pass: 'nez123' };
   });
+
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('saved');
+  const [lastSaveTime, setLastSaveTime] = useState<string>(new Date().toLocaleTimeString());
 
   const [projects, setProjects] = useState<GameProject[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -41,6 +51,7 @@ const App: React.FC = () => {
           ...p, 
           timeSpent: p.timeSpent || 0,
           hourlyRate: p.hourlyRate || 0,
+          columns: p.columns || DEFAULT_COLUMNS,
           storyFlows: storyFlows.map((f: StoryFlowData) => ({
             ...f,
             plotNodes: (f.plotNodes || []).map((n: any) => ({
@@ -69,7 +80,9 @@ const App: React.FC = () => {
     return localStorage.getItem(LAST_PROJECT_KEY);
   });
 
+  const projectsRef = useRef(projects);
   useEffect(() => {
+    projectsRef.current = projects;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
   }, [projects]);
 
@@ -83,6 +96,26 @@ const App: React.FC = () => {
     } else {
       localStorage.removeItem(LAST_PROJECT_KEY);
     }
+  }, [currentProjectId]);
+
+  // Минутная принудительная синхронизация
+  useEffect(() => {
+    const syncInterval = setInterval(() => {
+      if (currentProjectId) {
+        setSaveStatus('saving');
+        const updatedProjects = projectsRef.current.map(p => 
+          p.id === currentProjectId ? { ...p, lastModified: Date.now() } : p
+        );
+        setProjects(updatedProjects);
+        
+        setTimeout(() => {
+          setSaveStatus('saved');
+          setLastSaveTime(new Date().toLocaleTimeString());
+        }, 1500);
+      }
+    }, 60000);
+
+    return () => clearInterval(syncInterval);
   }, [currentProjectId]);
 
   const handleLogin = (user: string, pass: string) => {
@@ -107,6 +140,7 @@ const App: React.FC = () => {
       hourlyRate: 15,
       sections: [...DEFAULT_GDD_SECTIONS],
       tasks: [],
+      columns: [...DEFAULT_COLUMNS],
       storyFlows: [{
         id: crypto.randomUUID(),
         name: 'Основная схема',
@@ -161,14 +195,27 @@ const App: React.FC = () => {
           <div className="h-6 w-px bg-slate-800 mx-2" />
           <h1 className="text-xl font-black tracking-tighter text-white">{currentProject.title}</h1>
         </div>
+
         <div className="flex items-center gap-6">
+           {/* Глобальный индикатор сохранения перенесен сюда */}
+           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 bg-slate-950/40 ${
+              saveStatus === 'saving' ? 'border-amber-500/50 scale-105 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-slate-800 opacity-60'
+            }`}>
+              <div className={`w-1 h-1 rounded-full ${
+                saveStatus === 'saving' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'
+              }`} />
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">
+                {saveStatus === 'saving' ? 'Syncing' : `Saved ${lastSaveTime.slice(0, 5)}`}
+              </span>
+           </div>
+
            <button 
              onClick={() => setIsAuthenticated(false)}
              className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-400 transition-colors"
            >
              Выйти
            </button>
-           <div className="flex flex-col items-end">
+           <div className="flex flex-col items-end hidden sm:flex">
               <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest leading-none">Status</span>
               <span className="text-[10px] text-slate-500 font-bold">Arcane Synced</span>
            </div>

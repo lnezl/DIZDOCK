@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { GameProject, Section, StoryFlowData, PlotNode } from '../types';
+import { GameProject, Section, StoryFlowData, PlotNode, SubSection } from '../types';
 import SectionContent from './SectionContent';
 import AIAssistant from './AIAssistant';
 import KanbanBoard from './KanbanBoard';
@@ -15,68 +15,65 @@ interface EditorProps {
   authData: { login: string, pass: string };
 }
 
-type SaveStatus = 'idle' | 'saving' | 'saved';
-
 const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authData }) => {
   const [activeView, setActiveView] = useState<string>('architecture-overview-id');
   const [isAISidebarOpen, setIsAISidebarOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
-  const [lastSaveTime, setLastSaveTime] = useState<string>(new Date().toLocaleTimeString());
   const [searchTerm, setSearchTerm] = useState('');
   
+  const [displayTime, setDisplayTime] = useState(project.timeSpent);
+  
   const projectRef = useRef(project);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoSaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     projectRef.current = project;
-    // Visual feedback for any project change
-    setSaveStatus('saving');
-    const timeout = setTimeout(() => {
-      setSaveStatus('saved');
-      setLastSaveTime(new Date().toLocaleTimeString());
-    }, 800);
-    return () => clearTimeout(timeout);
+    setDisplayTime(project.timeSpent);
+  }, [project.id]);
+
+  useEffect(() => {
+    projectRef.current = project;
   }, [project]);
 
   useEffect(() => {
-    // Interval auto-save specifically every 1 minute as requested
-    autoSaveTimerRef.current = setInterval(() => {
-      setSaveStatus('saving');
-      onUpdate({
-        ...projectRef.current,
-        lastModified: Date.now()
-      });
-      setTimeout(() => {
-        setSaveStatus('saved');
-        setLastSaveTime(new Date().toLocaleTimeString());
+    let interval: any;
+    if (timerActive) {
+      interval = setInterval(() => {
+        setDisplayTime(prev => prev + 1000);
       }, 1000);
-    }, 60000);
-
-    return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
-    };
-  }, [onUpdate]);
+    }
+    return () => clearInterval(interval);
+  }, [timerActive]);
 
   useEffect(() => {
     if (timerActive) {
-      timerRef.current = setInterval(() => {
+      syncTimerRef.current = setInterval(() => {
         onUpdate({
           ...projectRef.current,
-          timeSpent: projectRef.current.timeSpent + 1000,
+          timeSpent: projectRef.current.timeSpent + 60000,
           lastModified: Date.now()
         });
-      }, 1000);
+      }, 60000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     }
     
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     };
   }, [timerActive, onUpdate]);
+
+  const toggleTimer = () => {
+    if (timerActive) {
+      onUpdate({
+        ...projectRef.current,
+        timeSpent: displayTime,
+        lastModified: Date.now()
+      });
+    }
+    setTimerActive(!timerActive);
+  };
 
   const formatTime = (ms: number) => {
     const hours = Math.floor(ms / 3600000);
@@ -121,9 +118,8 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
     setActiveView(flowId);
   }, [activeSection, onUpdate]);
 
-  const totalCost = (project.timeSpent / 3600000) * project.hourlyRate;
+  const totalCost = (displayTime / 3600000) * project.hourlyRate;
 
-  // Placeholder Settings Icon Component
   const SettingsIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 animate-[spin_8s_linear_infinite]">
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -141,7 +137,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
 
   const SidebarContent = () => (
     <div className="p-4 flex flex-col h-full overflow-hidden">
-      {/* Search Bar */}
       <div className="mb-4 relative group">
         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-slate-500 group-focus-within:text-primary-500 transition-colors">
@@ -171,14 +166,14 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
             <div className={`w-1.5 h-1.5 rounded-full ${timerActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
          </div>
          <div className="text-2xl font-black text-white font-mono mb-1 tracking-tighter">
-            {formatTime(project.timeSpent)}
+            {formatTime(displayTime)}
          </div>
          <div className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-4">
             Заработано: {new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD' }).format(totalCost)}
          </div>
          <div className="flex gap-2">
             <button 
-              onClick={() => setTimerActive(!timerActive)}
+              onClick={toggleTimer}
               className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
                 timerActive 
                 ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white' 
@@ -276,7 +271,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
 
   return (
     <div className="flex h-[calc(100vh-64px)] overflow-hidden bg-slate-950 relative">
-      {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] lg:hidden"
@@ -284,7 +278,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
         />
       )}
 
-      {/* Sidebar for Desktop & Mobile Drawer */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-[100] lg:z-auto
         w-72 border-r border-slate-800 flex flex-col bg-slate-900/90 lg:bg-slate-900/20 backdrop-blur-xl shrink-0
@@ -294,7 +287,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
         <SidebarContent />
       </aside>
 
-      {/* Mobile Menu Toggle (Floating) */}
       <button 
         onClick={() => setIsMobileMenuOpen(true)}
         className="lg:hidden fixed left-4 bottom-6 w-12 h-12 rounded-2xl bg-slate-900 border border-slate-700 text-white flex items-center justify-center shadow-2xl z-[80]"
@@ -303,20 +295,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
       </button>
 
       <section className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 no-scrollbar relative w-full">
-        {/* Визуальный индикатор автосохранения - адаптирован по положению */}
-        <div className="absolute top-4 right-4 md:top-8 md:right-12 z-40 pointer-events-none">
-          <div className={`flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-full border transition-all duration-500 bg-slate-900/80 backdrop-blur-md ${
-            saveStatus === 'saving' ? 'border-amber-500/50 scale-105' : 'border-slate-800 opacity-60'
-          }`}>
-            <div className={`w-1 h-1 md:w-1.5 md:h-1.5 rounded-full ${
-              saveStatus === 'saving' ? 'bg-amber-500 animate-ping' : 'bg-emerald-500'
-            }`} />
-            <span className="text-[7px] md:text-[9px] font-black uppercase tracking-widest text-slate-300">
-              {saveStatus === 'saving' ? 'Sync' : `Saved ${lastSaveTime.slice(0, 5)}`}
-            </span>
-          </div>
-        </div>
-
         <div className="max-w-6xl mx-auto h-full">
           {isArchitectureActive ? (
             <ArchitectureOverview 
@@ -325,6 +303,7 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
               onUpdateRate={(rate) => onUpdate({...projectRef.current, hourlyRate: rate})} 
               onUpdateAuth={onUpdateAuth}
               authData={authData}
+              onFullProjectImport={(importedProject) => onUpdate(importedProject)}
             />
           ) : isBoardActive ? (
             <KanbanBoard project={project} onUpdate={onUpdate} />
@@ -338,6 +317,7 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
               onNotesChange={(notes) => handleUpdateSection(activeSection.id, { notes })}
               onAttachmentsChange={(attachments) => handleUpdateSection(activeSection.id, { attachments })}
               onExportToFlow={handleExportToFlow}
+              onUpdateSubSections={(subSections) => handleUpdateSection(activeSection.id, { subSections })}
               onTitleChange={(title) => {
                 const updatedSections = projectRef.current.sections.map(s => s.id === activeSection.id ? { ...s, title } : s);
                 onUpdate({ ...projectRef.current, sections: updatedSections });
@@ -347,7 +327,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
         </div>
       </section>
 
-      {/* AI Sidebar adapted for full screen on mobile when open */}
       <aside className={`
         fixed lg:static right-0 inset-y-0 z-[110] lg:z-auto
         transition-all duration-500 ease-in-out bg-slate-900 lg:bg-slate-900/50 backdrop-blur-3xl border-l border-slate-800 flex flex-col shrink-0
@@ -365,7 +344,6 @@ const Editor: React.FC<EditorProps> = ({ project, onUpdate, onUpdateAuth, authDa
             if (window.innerWidth < 1024) setIsAISidebarOpen(false);
           }}
         />
-        {/* Close button for AI on mobile */}
         {isAISidebarOpen && (
           <button 
             onClick={() => setIsAISidebarOpen(false)}
